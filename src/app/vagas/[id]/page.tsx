@@ -1,0 +1,225 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { supabase, getAuthToken } from '@/lib/supabase';
+import { useAppStore } from '@/lib/store';
+import Header from '@/components/header';
+import AuthProvider from '@/components/auth-provider';
+import PrestadorCard from '@/components/prestador-card';
+import { Loader2, MapPin, Calendar, Clock, Shirt, Users, FileText, Heart } from 'lucide-react';
+import { formatCurrency, formatDate, formatTime, getVestimentaLabel } from '@/lib/utils';
+import type { Vaga, PrestadorCompativel } from '@/lib/types';
+import toast from 'react-hot-toast';
+
+export default function VagaDetailPage() {
+  const params = useParams();
+  const vagaId = params.id as string;
+  const { user, prestadorPerfil } = useAppStore();
+  const [enviando, setEnviando] = useState(false);
+  const [jaEnviou, setJaEnviou] = useState(false);
+  const [vaga, setVaga] = useState<Vaga | null>(null);
+  const [prestadores, setPrestadores] = useState<PrestadorCompativel[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (vagaId) fetchVaga();
+  }, [vagaId]);
+
+  const fetchVaga = async () => {
+    setLoading(true);
+    try {
+      const { data: vagaData, error } = await supabase
+        .from('vagas')
+        .select('*')
+        .eq('id', vagaId)
+        .single();
+      if (error) throw error;
+      setVaga(vagaData);
+
+      if (user?.tipo === 'contratante') {
+        const { data: matchData } = await supabase.rpc('buscar_matches_vaga', {
+          vaga_uuid: vagaId,
+        });
+        if (matchData) setPrestadores(matchData);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar vaga:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <AuthProvider>
+      <div className="min-h-screen bg-gray-50">
+        <Header title="Detalhes da Vaga" showBack />
+        <div className="flex justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
+        </div>
+      </div>
+      </AuthProvider>
+    );
+  }
+
+  if (!vaga) {
+    return (
+      <AuthProvider>
+      <div className="min-h-screen bg-gray-50">
+        <Header title="Vaga" showBack />
+        <div className="text-center py-20">
+          <p className="text-gray-500">Vaga não encontrada</p>
+        </div>
+      </div>
+      </AuthProvider>
+    );
+  }
+
+  return (
+    <AuthProvider>
+    <div className="min-h-screen bg-gray-50">
+      <Header title="Detalhes da Vaga" showBack />
+
+      <div className="page-container">
+        <div className="card p-5 mb-4">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">{vaga.titulo}</h1>
+              <p className="text-brand-600 font-medium">{vaga.funcao_principal}</p>
+            </div>
+            <span className={`badge ${
+              !vaga.ativa ? 'bg-gray-100 text-gray-500' :
+              new Date(vaga.data + 'T23:59:59') < new Date() ? 'bg-amber-100 text-amber-700' :
+              'bg-emerald-100 text-emerald-700'
+            }`}>
+              {!vaga.ativa ? 'Inativa' : new Date(vaga.data + 'T23:59:59') < new Date() ? 'Pendente' : 'Ativa'}
+            </span>
+          </div>
+
+          <p className="text-3xl font-bold text-emerald-600 mb-4">{formatCurrency(vaga.valor_oferecido)}</p>
+
+          <div className="space-y-3 text-sm text-gray-600">
+            <div className="flex items-center gap-3">
+              <Calendar className="w-4 h-4 text-gray-400" />
+              <span>{formatDate(vaga.data)}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Clock className="w-4 h-4 text-gray-400" />
+              <span>{formatTime(vaga.horario_inicio)} - {formatTime(vaga.horario_fim)}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <MapPin className="w-4 h-4 text-gray-400" />
+              {user?.tipo === 'prestador' ? (
+                <span>{[vaga.cidade, vaga.bairro].filter(Boolean).join(', ') || 'Local não informado'}</span>
+              ) : (
+                <span>{vaga.local_servico}{vaga.cidade ? `, ${vaga.cidade}` : ''}</span>
+              )}
+            </div>
+            {vaga.endereco_completo && user?.tipo !== 'prestador' && (
+              <div className="flex items-center gap-3">
+                <MapPin className="w-4 h-4 text-gray-400" />
+                <span className="text-xs text-gray-400">{vaga.endereco_completo}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-3">
+              <Shirt className="w-4 h-4 text-gray-400" />
+              <span>{getVestimentaLabel(vaga.vestimenta)}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Users className="w-4 h-4 text-gray-400" />
+              <span>{vaga.vagas_preenchidas > 0 ? 'Vaga preenchida' : 'Vaga disponível'}</span>
+            </div>
+          </div>
+        </div>
+
+        {vaga.descricao && (
+          <div className="card p-5 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="w-4 h-4 text-gray-400" />
+              <h3 className="font-semibold text-gray-700">Descrição</h3>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{vaga.descricao}</p>
+          </div>
+        )}
+
+        {user?.tipo === 'contratante' && (
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="section-title mb-0">Prestadores Compatíveis</h3>
+              <span className="text-sm text-gray-400">{prestadores.length}</span>
+            </div>
+            {prestadores.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500 text-sm">Nenhum prestador compatível encontrado</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {prestadores.map((p) => (
+                  <PrestadorCard key={p.prestador_id} prestador={p} showMatch />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {user?.tipo === 'prestador' && vaga.ativa && prestadorPerfil && (() => {
+          const funcoesPrestador = [prestadorPerfil.funcao_principal, prestadorPerfil.funcao_2, prestadorPerfil.funcao_3].filter(Boolean);
+          const funcaoCompativel = funcoesPrestador.includes(vaga.funcao_principal);
+          return funcaoCompativel ? (
+          <button
+            onClick={async () => {
+              if (jaEnviou || enviando) return;
+              setEnviando(true);
+              try {
+                const token = await getAuthToken();
+                const res = await fetch('/api/match', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                  body: JSON.stringify({
+                    vaga_id: vagaId,
+                    prestador_id: prestadorPerfil.id,
+                    action: 'criar',
+                    match_score: 0,
+                  }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                toast.success('Interesse enviado! Aguarde resposta do contratante.');
+                setJaEnviou(true);
+              } catch (err: any) {
+                if (err.message?.includes('já existe')) {
+                  toast.error('Você já demonstrou interesse nesta vaga');
+                  setJaEnviou(true);
+                } else {
+                  toast.error(err.message || 'Erro ao enviar interesse');
+                }
+              } finally {
+                setEnviando(false);
+              }
+            }}
+            disabled={enviando || jaEnviou}
+            className={`w-full mt-4 flex items-center justify-center gap-2 ${
+              jaEnviou ? 'btn-secondary text-emerald-600' : 'btn-primary'
+            }`}
+          >
+            {enviando ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : jaEnviou ? (
+              <Heart className="w-5 h-5 fill-emerald-600" />
+            ) : (
+              <Heart className="w-5 h-5" />
+            )}
+            {enviando ? 'Enviando...' : jaEnviou ? 'Interesse Enviado' : 'Tenho Interesse nesta Vaga'}
+          </button>
+          ) : (
+            <div className="w-full mt-4 text-center py-3 px-4 bg-gray-100 rounded-xl text-sm text-gray-500">
+              Você não possui a função cadastrada no seu perfil
+            </div>
+          );
+        })()}
+      </div>
+    </div>
+    </AuthProvider>
+  );
+}
