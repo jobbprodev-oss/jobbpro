@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Camera, Loader2, CheckCircle2, Upload } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera, Loader2, CheckCircle2, Upload, PlusCircle } from 'lucide-react';
 import { supabase, uploadImage } from '@/lib/supabase';
 import { FUNCOES_DISPONIVEIS, ESTADOS_BR } from '@/lib/types';
 import SearchableSelect from '@/components/searchable-select';
+import SolicitarFuncaoModal from '@/components/solicitar-funcao-modal';
 import { maskCPF, maskPhone, maskCEP } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -20,6 +21,7 @@ export default function RegisterPrestadorPage() {
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   const [docFile, setDocFile] = useState<File | null>(null);
   const [buscandoCep, setBuscandoCep] = useState(false);
+  const [showSolicitarFuncao, setShowSolicitarFuncao] = useState(false);
 
   const buscarCep = async (cep: string) => {
     const cepLimpo = cep.replace(/\D/g, '');
@@ -370,6 +372,11 @@ export default function RegisterPrestadorPage() {
                 placeholder="Opcional"
               />
             </div>
+            <button type="button" onClick={() => setShowSolicitarFuncao(true)}
+              className="flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 font-medium">
+              <PlusCircle className="w-4 h-4" /> Não encontrou sua função? Solicitar nova
+            </button>
+            <SolicitarFuncaoModal open={showSolicitarFuncao} onClose={() => setShowSolicitarFuncao(false)} />
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Valor pretendido (R$)</label>
               <input type="number" step="0.01" value={form.valor_pretendido} onChange={(e) => updateForm('valor_pretendido', e.target.value)} className="input-field" placeholder="150.00" />

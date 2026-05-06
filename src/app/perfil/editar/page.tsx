@@ -7,10 +7,11 @@ import { useAppStore } from '@/lib/store';
 import Header from '@/components/header';
 import BottomNav from '@/components/bottom-nav';
 import AuthProvider from '@/components/auth-provider';
-import { Loader2, Save, Camera, User as UserIcon } from 'lucide-react';
+import { Loader2, Save, Camera, User as UserIcon, PlusCircle } from 'lucide-react';
 import { uploadImage } from '@/lib/supabase';
 import { FUNCOES_DISPONIVEIS, ESTADOS_BR } from '@/lib/types';
 import SearchableSelect from '@/components/searchable-select';
+import SolicitarFuncaoModal from '@/components/solicitar-funcao-modal';
 import type { User, PrestadorPerfil, ContratantePerfil } from '@/lib/types';
 import { maskPhone, maskCEP } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -46,6 +47,7 @@ export default function EditarPerfilPage() {
   const [nomeEmpresa, setNomeEmpresa] = useState('');
   const [descricaoEmpresa, setDescricaoEmpresa] = useState('');
   const [buscandoCep, setBuscandoCep] = useState(false);
+  const [showSolicitarFuncao, setShowSolicitarFuncao] = useState(false);
 
   const buscarCepApi = async (cepVal: string) => {
     const cepLimpo = cepVal.replace(/\D/g, '');
@@ -305,6 +307,11 @@ export default function EditarPerfilPage() {
                     placeholder="Opcional"
                   />
                 </div>
+                <button type="button" onClick={() => setShowSolicitarFuncao(true)}
+                  className="flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 font-medium">
+                  <PlusCircle className="w-4 h-4" /> Não encontrou sua função? Solicitar nova
+                </button>
+                <SolicitarFuncaoModal open={showSolicitarFuncao} onClose={() => setShowSolicitarFuncao(false)} />
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Valor Pretendido (R$)</label>
                   <input type="number" value={valorPretendido} onChange={(e) => setValorPretendido(e.target.value)} className="input-field" placeholder="0.00" step="0.01" />

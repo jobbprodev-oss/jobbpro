@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import AuthProvider from '@/components/auth-provider';
-import { Loader2, Users, Briefcase, ClipboardList, Star, Shield, LogOut, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Loader2, Users, Briefcase, ClipboardList, Star, Shield, LogOut, TrendingUp, AlertTriangle, CreditCard, Tag } from 'lucide-react';
 
 interface Stats {
   totalUsers: number;
@@ -124,11 +124,21 @@ export default function AdminDashboardPage() {
 
             {/* Navigation */}
             <h3 className="text-lg font-semibold mb-4">Gerenciar</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Link href="/admin/usuarios" className="bg-gray-800 border border-gray-700 rounded-xl p-5 hover:border-brand-500 transition-colors group">
                 <Users className="w-8 h-8 text-brand-400 mb-3 group-hover:scale-110 transition-transform" />
                 <h4 className="font-semibold text-white">Usuários</h4>
-                <p className="text-sm text-gray-400 mt-1">Gerenciar prestadores e contratantes</p>
+                <p className="text-sm text-gray-400 mt-1">Criar, editar e gerenciar usuários</p>
+              </Link>
+              <Link href="/admin/planos" className="bg-gray-800 border border-gray-700 rounded-xl p-5 hover:border-brand-500 transition-colors group">
+                <CreditCard className="w-8 h-8 text-purple-400 mb-3 group-hover:scale-110 transition-transform" />
+                <h4 className="font-semibold text-white">Planos</h4>
+                <p className="text-sm text-gray-400 mt-1">Definir planos e valores de acesso</p>
+              </Link>
+              <Link href="/admin/funcoes" className="bg-gray-800 border border-gray-700 rounded-xl p-5 hover:border-brand-500 transition-colors group">
+                <Tag className="w-8 h-8 text-orange-400 mb-3 group-hover:scale-110 transition-transform" />
+                <h4 className="font-semibold text-white">Funções</h4>
+                <p className="text-sm text-gray-400 mt-1">Gerenciar funções e solicitações</p>
               </Link>
               <Link href="/admin/vagas" className="bg-gray-800 border border-gray-700 rounded-xl p-5 hover:border-brand-500 transition-colors group">
                 <Briefcase className="w-8 h-8 text-emerald-400 mb-3 group-hover:scale-110 transition-transform" />

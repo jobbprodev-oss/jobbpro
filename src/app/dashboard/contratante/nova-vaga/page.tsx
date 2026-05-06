@@ -6,9 +6,10 @@ import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import Header from '@/components/header';
 import AuthProvider from '@/components/auth-provider';
-import { Loader2, CheckCircle2 } from 'lucide-react';
+import { Loader2, CheckCircle2, PlusCircle } from 'lucide-react';
 import { FUNCOES_DISPONIVEIS, ESTADOS_BR } from '@/lib/types';
 import SearchableSelect from '@/components/searchable-select';
+import SolicitarFuncaoModal from '@/components/solicitar-funcao-modal';
 import { maskCEP } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -36,6 +37,7 @@ export default function NovaVagaPage() {
   });
 
   const [buscandoCep, setBuscandoCep] = useState(false);
+  const [showSolicitarFuncao, setShowSolicitarFuncao] = useState(false);
 
   const updateForm = (field: string, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -136,6 +138,11 @@ export default function NovaVagaPage() {
             options={FUNCOES_DISPONIVEIS}
             placeholder="Buscar função..."
           />
+          <button type="button" onClick={() => setShowSolicitarFuncao(true)}
+            className="mt-2 flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 font-medium">
+            <PlusCircle className="w-4 h-4" /> Não encontrou? Solicitar nova função
+          </button>
+          <SolicitarFuncaoModal open={showSolicitarFuncao} onClose={() => setShowSolicitarFuncao(false)} />
         </div>
 
         <h2 className="section-title pt-2">Data e Horário</h2>

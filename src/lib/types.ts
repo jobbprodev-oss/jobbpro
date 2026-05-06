@@ -22,6 +22,9 @@ export interface User {
   foto_documento_url?: string;
   ativo: boolean;
   termo_aceite: boolean;
+  plano_id?: string;
+  plano_ativo?: boolean;
+  plano_expira_em?: string;
   created_at: string;
   updated_at: string;
 }
@@ -176,6 +179,19 @@ export interface PrestadorCompativel {
   vestimenta: VestimentaTipo;
   match_score: number;
   cidade: string;
+}
+
+export interface Plano {
+  id: string;
+  nome: string;
+  descricao?: string;
+  valor: number;
+  duracao_dias: number;
+  tipo_usuario: UserType;
+  ativo: boolean;
+  recursos: string[];
+  created_at: string;
+  updated_at: string;
 }
 
 export const FUNCOES_DISPONIVEIS = [

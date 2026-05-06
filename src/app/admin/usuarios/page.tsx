@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import AuthProvider from '@/components/auth-provider';
-import { Loader2, ArrowLeft, Search, Shield, Users, User, Eye, Ban, CheckCircle, ChevronDown } from 'lucide-react';
+import { Loader2, ArrowLeft, Search, Shield, Users, User, Eye, Ban, CheckCircle, ChevronDown, Plus, Edit2 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -112,7 +112,10 @@ export default function AdminUsuariosPage() {
                 <Users className="w-5 h-5 text-brand-400" />
                 <h1 className="text-lg font-bold">Usuários</h1>
               </div>
-              <span className="text-sm text-gray-500 ml-auto">{filtrados.length} registros</span>
+              <Link href="/admin/usuarios/novo" className="ml-auto flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 rounded-lg text-sm font-medium transition-colors">
+                <Plus className="w-4 h-4" /> Novo Usuário
+              </Link>
+              <span className="text-sm text-gray-500">{filtrados.length} registros</span>
             </div>
           </header>
 
@@ -200,6 +203,13 @@ export default function AdminUsuariosPage() {
                               title="Ver perfil"
                             >
                               <Eye className="w-4 h-4" />
+                            </Link>
+                            <Link
+                              href={`/admin/usuarios/${u.id}/editar`}
+                              className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white"
+                              title="Editar"
+                            >
+                              <Edit2 className="w-4 h-4" />
                             </Link>
                             {u.tipo !== 'admin' && (
                               <button
