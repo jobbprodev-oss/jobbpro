@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
-import { getAuthToken } from '@/lib/supabase';
+import { getAuthToken, supabase, uploadImage } from '@/lib/supabase';
 import AuthProvider from '@/components/auth-provider';
-import { Loader2, ArrowLeft, UserPlus, Check } from 'lucide-react';
+import { Loader2, ArrowLeft, UserPlus, Check, Upload, FileText, X } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { FUNCOES_DISPONIVEIS, ESTADOS_BR } from '@/lib/types';
 import type { Plano } from '@/lib/types';
@@ -17,6 +17,8 @@ export default function AdminNovoUsuarioPage() {
   const { user, loading: authLoading } = useAppStore();
   const [planos, setPlanos] = useState<Plano[]>([]);
   const [saving, setSaving] = useState(false);
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [docPreview, setDocPreview] = useState<string | null>(null);
   const [form, setForm] = useState({
     nome: '',
     email: '',
@@ -71,6 +73,18 @@ export default function AdminNovoUsuarioPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+
+      // Upload documento se fornecido
+      if (docFile && data.user?.id) {
+        const fileExt = docFile.name.split('.').pop();
+        const fileName = `${data.user.id}/documento_${Date.now()}.${fileExt}`;
+        const { error: upErr } = await supabase.storage.from('documentos').upload(fileName, docFile, { upsert: true });
+        if (!upErr) {
+          const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(fileName);
+          await supabase.from('users').update({ foto_documento_url: urlData.publicUrl }).eq('id', data.user.id);
+        }
+      }
+
       toast.success('Usuário criado com sucesso!');
       router.push('/admin/usuarios');
     } catch (err: any) {
@@ -155,6 +169,46 @@ export default function AdminNovoUsuarioPage() {
                     </select>
                   </div>
                 </div>
+              </div>
+
+              {/* Documento RG/CNH */}
+              <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
+                <h2 className="font-semibold mb-4">Documento (RG ou CNH)</h2>
+                <p className="text-sm text-gray-400 mb-3">Envie uma foto ou PDF do documento de identificação.</p>
+                {docFile ? (
+                  <div className="flex items-center gap-3 p-3 bg-gray-900 border border-gray-600 rounded-lg">
+                    <FileText className="w-5 h-5 text-brand-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white truncate">{docFile.name}</p>
+                      <p className="text-xs text-gray-500">{(docFile.size / 1024).toFixed(0)} KB</p>
+                    </div>
+                    {docPreview && docFile.type.startsWith('image/') && (
+                      <img src={docPreview} alt="Preview" className="w-12 h-12 object-cover rounded" />
+                    )}
+                    <button type="button" onClick={() => { setDocFile(null); setDocPreview(null); }}
+                      className="p-1 text-red-400 hover:bg-red-500/10 rounded">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:border-brand-500 transition-colors">
+                    <Upload className="w-8 h-8 text-gray-500" />
+                    <span className="text-sm text-gray-400">Clique para enviar foto ou PDF</span>
+                    <span className="text-xs text-gray-500">JPG, PNG ou PDF - Máx 5MB</span>
+                    <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 5 * 1024 * 1024) { toast.error('Arquivo muito grande (máx 5MB)'); return; }
+                        setDocFile(file);
+                        if (file.type.startsWith('image/')) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => setDocPreview(ev.target?.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }
+                    }} />
+                  </label>
+                )}
               </div>
 
               {/* Campos específicos por tipo */}

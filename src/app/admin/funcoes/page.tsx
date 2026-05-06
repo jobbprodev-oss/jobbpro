@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { getAuthToken } from '@/lib/supabase';
 import AuthProvider from '@/components/auth-provider';
@@ -28,17 +28,21 @@ interface Solicitacao {
 
 export default function AdminFuncoesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAppStore();
   const [funcoes, setFuncoes] = useState<Funcao[]>([]);
   const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([]);
   const [loading, setLoading] = useState(true);
   const [novaFuncao, setNovaFuncao] = useState('');
   const [adding, setAdding] = useState(false);
-  const [tab, setTab] = useState<'funcoes' | 'solicitacoes'>('funcoes');
+  const paramTab = searchParams.get('tab');
+  const highlightId = searchParams.get('id');
+  const [tab, setTab] = useState<'funcoes' | 'solicitacoes'>(paramTab === 'solicitacoes' ? 'solicitacoes' : 'funcoes');
   const [motivoRejeicao, setMotivoRejeicao] = useState('');
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [editingFuncaoId, setEditingFuncaoId] = useState<string | null>(null);
   const [editingNome, setEditingNome] = useState('');
+  const [nomeEditado, setNomeEditado] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -47,22 +51,32 @@ export default function AdminFuncoesPage() {
     }
   }, [user, authLoading]);
 
+  // Auto-scroll para solicitação destacada
+  useEffect(() => {
+    if (highlightId && !loading) {
+      setTimeout(() => {
+        document.getElementById(`sol-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    }
+  }, [highlightId, loading]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
       const token = await getAuthToken();
       const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
+      const ts = Date.now();
       const [funcoesRes, solRes] = await Promise.all([
-        fetch('/api/admin/funcoes'),
-        fetch('/api/admin/funcoes/solicitacoes', { headers }),
+        fetch(`/api/admin/funcoes?all=1&t=${ts}`, { cache: 'no-store' }),
+        fetch(`/api/admin/funcoes/solicitacoes?t=${ts}`, { headers, cache: 'no-store' }),
       ]);
 
       const funcoesData = await funcoesRes.json();
       const solData = await solRes.json();
 
-      setFuncoes(funcoesData.funcoes || []);
-      setSolicitacoes(solData.solicitacoes || []);
+      if (funcoesRes.ok) setFuncoes(funcoesData.funcoes || []);
+      if (solRes.ok) setSolicitacoes(solData.solicitacoes || []);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -138,14 +152,32 @@ export default function AdminFuncoesPage() {
       const res = await fetch('/api/admin/funcoes/solicitacoes', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ id, acao, motivo_rejeicao: acao === 'rejeitar' ? motivoRejeicao : undefined }),
+        body: JSON.stringify({ id, acao, motivo_rejeicao: acao === 'rejeitar' ? motivoRejeicao : undefined, nome_editado: acao === 'aprovar' ? nomeEditado[id] : undefined }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        if (res.status === 409) {
+          // Já respondida - atualizar estado local
+          setSolicitacoes((prev) => prev.map((s) => s.id === id ? { ...s, status: acao === 'aprovar' ? 'aprovada' : 'rejeitada' } : s));
+          toast('Solicitação já foi respondida', { icon: 'ℹ️' });
+          return;
+        }
+        throw new Error(data.error);
+      }
       toast.success(acao === 'aprovar' ? 'Função aprovada e adicionada!' : 'Solicitação rejeitada');
+
+      // Atualização otimista: mover item para histórico localmente
+      setSolicitacoes((prev) => prev.map((s) => s.id === id ? { ...s, status: acao === 'aprovar' ? 'aprovada' : 'rejeitada' } : s));
+
+      // Se aprovada, adicionar à lista de funções localmente
+      if (acao === 'aprovar') {
+        const sol = solicitacoes.find((s) => s.id === id);
+        const nomeFinal = (nomeEditado[id] && nomeEditado[id].trim()) || sol?.nome_funcao || '';
+        setFuncoes((prev) => [...prev, { id: `new-${id}`, nome: nomeFinal, ativa: true, created_at: new Date().toISOString() }]);
+      }
+
       setRejectingId(null);
       setMotivoRejeicao('');
-      fetchData();
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -262,20 +294,22 @@ export default function AdminFuncoesPage() {
                     </h3>
                     <div className="space-y-3">
                       {pendentes.map((s) => (
-                        <div key={s.id} className="bg-gray-800 border border-yellow-700/50 rounded-xl p-4">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <p className="font-semibold text-white text-lg">&ldquo;{s.nome_funcao}&rdquo;</p>
-                              <p className="text-sm text-gray-400 mt-1">
-                                Solicitado por <span className="text-white font-medium">{s.users?.nome || 'Usuário'}</span>
-                                {s.users?.tipo && <span className="ml-1 text-xs text-gray-500">({s.users.tipo})</span>}
-                              </p>
-                              {s.motivo && <p className="text-sm text-gray-500 mt-1">Motivo: {s.motivo}</p>}
-                            </div>
-                          </div>
+                        <div key={s.id} id={`sol-${s.id}`} className={`bg-gray-800 border rounded-xl p-4 ${highlightId === s.id ? 'border-brand-500 ring-2 ring-brand-500/50' : 'border-yellow-700/50'}`}>
+                          <p className="text-sm text-gray-400 mb-2">
+                            Solicitado por <span className="text-white font-medium">{s.users?.nome || 'Usuário'}</span>
+                            {s.users?.tipo && <span className="ml-1 text-xs text-gray-500">({s.users.tipo})</span>}
+                          </p>
+                          <input
+                            value={nomeEditado[s.id] ?? s.nome_funcao}
+                            onChange={(e) => setNomeEditado((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                            className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white font-semibold focus:outline-none focus:border-brand-500 mb-2"
+                          />
+                          {s.motivo && <p className="text-xs text-gray-500 mb-2">Motivo: {s.motivo}</p>}
 
-                          {rejectingId === s.id ? (
-                            <div className="mt-3 space-y-2">
+                          {s.status !== 'pendente' ? (
+                            <p className="text-sm text-yellow-400 italic">Solicitação já foi respondida</p>
+                          ) : rejectingId === s.id ? (
+                            <div className="space-y-2">
                               <input value={motivoRejeicao} onChange={(e) => setMotivoRejeicao(e.target.value)}
                                 placeholder="Motivo da rejeição (opcional)..."
                                 className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-red-500" />
@@ -291,7 +325,7 @@ export default function AdminFuncoesPage() {
                               </div>
                             </div>
                           ) : (
-                            <div className="flex gap-2 mt-3">
+                            <div className="flex gap-2">
                               <button onClick={() => responderSolicitacao(s.id, 'aprovar')}
                                 className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-medium transition-colors">
                                 <CheckCircle className="w-4 h-4" /> Aprovar e Adicionar
@@ -314,13 +348,8 @@ export default function AdminFuncoesPage() {
                     <h3 className="text-sm font-semibold text-gray-400 mb-3">Histórico</h3>
                     <div className="space-y-2">
                       {historico.map((s) => (
-                        <div key={s.id} className={`flex items-center justify-between px-4 py-3 rounded-lg border ${
-                          s.status === 'aprovada' ? 'bg-emerald-900/10 border-emerald-800/30' : 'bg-red-900/10 border-red-800/30'
-                        }`}>
-                          <div>
-                            <span className="font-medium text-sm">{s.nome_funcao}</span>
-                            <span className="text-xs text-gray-500 ml-2">por {s.users?.nome}</span>
-                          </div>
+                        <div key={s.id} className="flex items-center justify-between px-4 py-3 rounded-lg bg-gray-800/50 border border-gray-800">
+                          <span className="text-sm text-gray-300">{s.nome_funcao}</span>
                           <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                             s.status === 'aprovada' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
                           }`}>

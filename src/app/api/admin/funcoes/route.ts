@@ -18,14 +18,17 @@ async function isAdmin(token: string): Promise<boolean> {
 
 export const dynamic = 'force-dynamic';
 
-// GET - Listar funções ativas
-export async function GET() {
+// GET - Listar funções (todas para admin, ativas para outros)
+export async function GET(request: NextRequest) {
   try {
-    const { data, error } = await getAdmin()
-      .from('funcoes')
-      .select('*')
-      .eq('ativa', true)
-      .order('nome');
+    const { searchParams } = new URL(request.url);
+    const all = searchParams.get('all') === '1';
+
+    let query = getAdmin().from('funcoes').select('*');
+    if (!all) query = query.eq('ativa', true);
+    query = query.order('nome');
+
+    const { data, error } = await query;
     if (error) throw error;
     return NextResponse.json({ funcoes: data });
   } catch (err: any) {

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import AuthProvider from '@/components/auth-provider';
-import { Loader2, Users, Briefcase, ClipboardList, Star, Shield, LogOut, TrendingUp, AlertTriangle, CreditCard, Tag } from 'lucide-react';
+import { Loader2, Users, Briefcase, ClipboardList, Star, Shield, LogOut, TrendingUp, AlertTriangle, CreditCard, Tag, Bell } from 'lucide-react';
 
 interface Stats {
   totalUsers: number;
@@ -22,7 +22,7 @@ interface Stats {
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAppStore();
+  const { user, notificacoes, loading: authLoading } = useAppStore();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -96,8 +96,16 @@ export default function AdminDashboardPage() {
                   <p className="text-xs text-gray-400">Painel Administrativo</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-400">{user?.nome}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-400 hidden sm:inline">{user?.nome}</span>
+                <Link href="/admin/notificacoes" className="relative p-2 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors">
+                  <Bell className="w-5 h-5" />
+                  {notificacoes.filter(n => !n.lida).length > 0 && (
+                    <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {notificacoes.filter(n => !n.lida).length > 9 ? '9+' : notificacoes.filter(n => !n.lida).length}
+                    </span>
+                  )}
+                </Link>
                 <button onClick={handleLogout} className="p-2 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors">
                   <LogOut className="w-5 h-5" />
                 </button>

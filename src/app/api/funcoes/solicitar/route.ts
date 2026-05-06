@@ -54,10 +54,12 @@ export async function POST(request: NextRequest) {
     if (error) throw error;
 
     // Notificar todos os admins
-    const { data: admins } = await getAdmin()
+    const { data: admins, error: adminsErr } = await getAdmin()
       .from('users')
       .select('id')
       .eq('tipo', 'admin');
+
+    console.log('[SOLICITAR_FUNCAO] Admins encontrados:', admins?.length, 'Erro:', adminsErr?.message);
 
     const { data: solicitante } = await getAdmin()
       .from('users')
@@ -71,9 +73,12 @@ export async function POST(request: NextRequest) {
         titulo: 'Nova solicitação de função',
         mensagem: `${solicitante?.nome || 'Um usuário'} solicitou a função "${nome_funcao.trim()}"`,
         tipo: 'solicitacao_funcao',
-        link: '/admin/funcoes',
+        link: `/admin/funcoes?tab=solicitacoes&id=${data.id}`,
       }));
-      await getAdmin().from('notificacoes').insert(notifs);
+      const { error: notifErr } = await getAdmin().from('notificacoes').insert(notifs);
+      if (notifErr) console.error('[SOLICITAR_FUNCAO] Erro ao criar notificação:', notifErr);
+    } else {
+      console.warn('[SOLICITAR_FUNCAO] Nenhum admin encontrado para notificar');
     }
 
     return NextResponse.json({ solicitacao: data });

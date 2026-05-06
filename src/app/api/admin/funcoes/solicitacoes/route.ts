@@ -26,12 +26,33 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
     }
 
-    const { data, error } = await getAdmin()
+    // Buscar solicitações
+    const { data: solicitacoes, error } = await getAdmin()
       .from('solicitacoes_funcao')
-      .select('*, users:solicitante_id(nome, email, tipo)')
+      .select('*')
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return NextResponse.json({ solicitacoes: data });
+
+    // Buscar dados dos solicitantes separadamente
+    const solicitanteIds = Array.from(new Set((solicitacoes || []).map((s: any) => s.solicitante_id)));
+    let usersMap: Record<string, { nome: string; email: string; tipo: string }> = {};
+    if (solicitanteIds.length > 0) {
+      const { data: usersData } = await getAdmin()
+        .from('users')
+        .select('id, nome, email, tipo')
+        .in('id', solicitanteIds);
+      if (usersData) {
+        usersData.forEach((u: any) => { usersMap[u.id] = { nome: u.nome, email: u.email, tipo: u.tipo }; });
+      }
+    }
+
+    // Montar resposta com dados do solicitante
+    const result = (solicitacoes || []).map((s: any) => ({
+      ...s,
+      users: usersMap[s.solicitante_id] || null,
+    }));
+
+    return NextResponse.json({ solicitacoes: result });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -45,7 +66,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
     }
 
-    const { id, acao, motivo_rejeicao } = await request.json();
+    const { id, acao, motivo_rejeicao, nome_editado } = await request.json();
     if (!id || !acao) return NextResponse.json({ error: 'ID e ação obrigatórios' }, { status: 400 });
     if (!['aprovar', 'rejeitar'].includes(acao)) {
       return NextResponse.json({ error: 'Ação inválida' }, { status: 400 });
@@ -56,44 +77,51 @@ export async function PUT(request: NextRequest) {
       .from('solicitacoes_funcao')
       .select('*')
       .eq('id', id)
-      .eq('status', 'pendente')
       .single();
     if (fetchErr || !solicitacao) {
-      return NextResponse.json({ error: 'Solicitação não encontrada ou já respondida' }, { status: 404 });
+      console.error('[SOLICITACAO] Não encontrada:', id, fetchErr);
+      return NextResponse.json({ error: 'Solicitação não encontrada' }, { status: 404 });
+    }
+    if (solicitacao.status !== 'pendente') {
+      return NextResponse.json({ error: 'Solicitação já foi respondida' }, { status: 409 });
+    }
+
+    const novoStatus = acao === 'aprovar' ? 'aprovada' : 'rejeitada';
+    const nomeFinal = acao === 'aprovar'
+      ? ((nome_editado && nome_editado.trim()) ? nome_editado.trim() : solicitacao.nome_funcao)
+      : solicitacao.nome_funcao;
+
+    // Usar RPC SECURITY DEFINER para garantir que o update funciona
+    const { data: rpcResult, error: rpcErr } = await getAdmin().rpc('responder_solicitacao', {
+      p_id: id,
+      p_status: novoStatus,
+      p_admin_resposta: acao === 'rejeitar' ? (motivo_rejeicao || null) : null,
+    });
+
+    if (rpcErr) {
+      console.error('[SOLICITACAO] RPC erro:', rpcErr);
+      throw new Error(`Erro ao atualizar: ${rpcErr.message}`);
+    }
+    if (rpcResult && !rpcResult.success) {
+      return NextResponse.json({ error: rpcResult.error || 'Falha ao atualizar' }, { status: 409 });
     }
 
     if (acao === 'aprovar') {
       // Criar a função na tabela
       const { error: insertErr } = await getAdmin()
         .from('funcoes')
-        .insert({ nome: solicitacao.nome_funcao, ativa: true });
+        .insert({ nome: nomeFinal, ativa: true });
       if (insertErr && insertErr.code !== '23505') throw insertErr;
-
-      // Atualizar solicitação
-      await getAdmin()
-        .from('solicitacoes_funcao')
-        .update({ status: 'aprovada', respondido_em: new Date().toISOString() })
-        .eq('id', id);
 
       // Notificar solicitante
       await getAdmin().from('notificacoes').insert({
         user_id: solicitacao.solicitante_id,
         titulo: 'Função aprovada!',
-        mensagem: `Sua solicitação da função "${solicitacao.nome_funcao}" foi aprovada! Ela já está disponível na plataforma.`,
+        mensagem: `Sua solicitação da função "${solicitacao.nome_funcao}" foi aprovada${nomeFinal !== solicitacao.nome_funcao ? ` como "${nomeFinal}"` : ''}! Ela já está disponível na plataforma.`,
         tipo: 'solicitacao_funcao',
         link: '/perfil/editar',
       });
     } else {
-      // Rejeitar
-      await getAdmin()
-        .from('solicitacoes_funcao')
-        .update({
-          status: 'rejeitada',
-          admin_resposta: motivo_rejeicao || null,
-          respondido_em: new Date().toISOString(),
-        })
-        .eq('id', id);
-
       // Notificar solicitante
       await getAdmin().from('notificacoes').insert({
         user_id: solicitacao.solicitante_id,

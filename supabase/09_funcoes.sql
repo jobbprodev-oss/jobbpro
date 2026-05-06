@@ -60,3 +60,36 @@ CREATE POLICY "solicitacoes_admin_update" ON solicitacoes_funcao FOR UPDATE USIN
 CREATE INDEX IF NOT EXISTS idx_funcoes_ativa ON funcoes(ativa);
 CREATE INDEX IF NOT EXISTS idx_solicitacoes_status ON solicitacoes_funcao(status);
 CREATE INDEX IF NOT EXISTS idx_solicitacoes_solicitante ON solicitacoes_funcao(solicitante_id);
+
+-- =============================================
+-- RPC: Responder solicitação (SECURITY DEFINER bypassa RLS)
+-- =============================================
+CREATE OR REPLACE FUNCTION responder_solicitacao(
+  p_id UUID,
+  p_status TEXT,
+  p_admin_resposta TEXT DEFAULT NULL
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_result JSON;
+BEGIN
+  UPDATE solicitacoes_funcao
+  SET status = p_status,
+      admin_resposta = p_admin_resposta,
+      respondido_em = NOW()
+  WHERE id = p_id AND status = 'pendente';
+
+  IF NOT FOUND THEN
+    RETURN json_build_object('success', false, 'error', 'Solicitação não encontrada ou já respondida');
+  END IF;
+
+  SELECT json_build_object('success', true, 'id', id, 'status', status)
+  INTO v_result
+  FROM solicitacoes_funcao WHERE id = p_id;
+
+  RETURN v_result;
+END;
+$$;
