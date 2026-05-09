@@ -7,6 +7,7 @@ import Header from '@/components/header';
 import BottomNav from '@/components/bottom-nav';
 import AuthProvider from '@/components/auth-provider';
 import { Loader2, Plus, Trash2, Calendar, Clock } from 'lucide-react';
+import DisponibilidadePagamentoModal from '@/components/disponibilidade-pagamento-modal';
 import { formatDate, formatTime } from '@/lib/utils';
 import type { Disponibilidade } from '@/lib/types';
 import toast from 'react-hot-toast';
@@ -17,6 +18,7 @@ export default function DisponibilidadePage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [showPagamentoModal, setShowPagamentoModal] = useState(false);
 
   const [novaData, setNovaData] = useState('');
   const [novaInicio, setNovaInicio] = useState('08:00');
@@ -45,8 +47,7 @@ export default function DisponibilidadePage() {
     }
   };
 
-  const adicionarDisponibilidade = async () => {
-    if (!prestadorPerfil) return;
+  const adicionarDisponibilidade = () => {
     if (!novaData) {
       toast.error('Selecione uma data');
       return;
@@ -55,26 +56,7 @@ export default function DisponibilidadePage() {
       toast.error('Horário de início deve ser anterior ao fim');
       return;
     }
-
-    setSalvando(true);
-    try {
-      const { error } = await supabase.from('disponibilidades').insert({
-        prestador_id: prestadorPerfil.id,
-        data: novaData,
-        horario_inicio: novaInicio,
-        horario_fim: novaFim,
-        disponivel: true,
-      });
-      if (error) throw error;
-      toast.success('Disponibilidade adicionada!');
-      setNovaData('');
-      setShowForm(false);
-      fetchDisponibilidades();
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao adicionar');
-    } finally {
-      setSalvando(false);
-    }
+    setShowPagamentoModal(true);
   };
 
   const removerDisponibilidade = async (id: string) => {
@@ -202,6 +184,21 @@ export default function DisponibilidadePage() {
           </div>
 
           <BottomNav />
+
+          <DisponibilidadePagamentoModal
+            isOpen={showPagamentoModal}
+            onClose={() => setShowPagamentoModal(false)}
+            data={novaData}
+            horario_inicio={novaInicio}
+            horario_fim={novaFim}
+            onSuccess={() => {
+              setNovaData('');
+              setNovaInicio('08:00');
+              setNovaFim('18:00');
+              setShowForm(false);
+              fetchDisponibilidades();
+            }}
+          />
         </div>
       )}
     </AuthProvider>

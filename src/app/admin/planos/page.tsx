@@ -8,7 +8,7 @@ import { getAuthToken } from '@/lib/supabase';
 import AuthProvider from '@/components/auth-provider';
 import { Loader2, ArrowLeft, Plus, CreditCard, Edit2, Trash2, X, Check } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import type { Plano } from '@/lib/types';
+import type { Plano, PlanoCategoria } from '@/lib/types';
 import toast from 'react-hot-toast';
 
 const EMPTY_FORM = {
@@ -17,6 +17,7 @@ const EMPTY_FORM = {
   valor: '',
   duracao_dias: '30',
   tipo_usuario: 'prestador' as string,
+  categoria: 'servico' as string,
   recursos: '',
 };
 
@@ -29,6 +30,7 @@ export default function AdminPlanosPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [filtroCategoria, setFiltroCategoria] = useState<'todos' | PlanoCategoria>('todos');
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -52,10 +54,12 @@ export default function AdminPlanosPage() {
   };
 
   const openNew = () => {
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, categoria: 'servico' });
     setEditingId(null);
     setShowForm(true);
   };
+
+  const isCadastroEdit = editingId ? planos.find((p) => p.id === editingId)?.categoria === 'cadastro' : false;
 
   const openEdit = (plano: Plano) => {
     setForm({
@@ -64,6 +68,7 @@ export default function AdminPlanosPage() {
       valor: String(plano.valor),
       duracao_dias: String(plano.duracao_dias),
       tipo_usuario: plano.tipo_usuario,
+      categoria: plano.categoria || 'servico',
       recursos: (plano.recursos || []).join(', '),
     });
     setEditingId(plano.id);
@@ -85,6 +90,7 @@ export default function AdminPlanosPage() {
         valor: parseFloat(form.valor),
         duracao_dias: parseInt(form.duracao_dias),
         tipo_usuario: form.tipo_usuario,
+        categoria: form.categoria,
         recursos: form.recursos ? form.recursos.split(',').map((r) => r.trim()).filter(Boolean) : [],
       };
 
@@ -139,13 +145,26 @@ export default function AdminPlanosPage() {
                 <CreditCard className="w-5 h-5 text-brand-400" />
                 <h1 className="text-lg font-bold">Planos</h1>
               </div>
-              <button onClick={openNew} className="ml-auto flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 rounded-lg text-sm font-medium transition-colors">
-                <Plus className="w-4 h-4" /> Novo Plano
-              </button>
+              {filtroCategoria !== 'cadastro' && (
+                <button onClick={openNew} className="ml-auto flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 rounded-lg text-sm font-medium transition-colors">
+                  <Plus className="w-4 h-4" /> Novo Plano
+                </button>
+              )}
             </div>
           </header>
 
           <div className="max-w-6xl mx-auto px-6 py-6">
+            {/* Filtro por Categoria */}
+            <div className="flex gap-2 mb-6">
+              {[{v: 'todos', l: 'Todos'}, {v: 'servico', l: 'Planos de Serviço'}, {v: 'cadastro', l: 'Planos de Cadastro'}].map(({v, l}) => (
+                <button key={v} onClick={() => setFiltroCategoria(v as any)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    filtroCategoria === v ? 'bg-brand-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
+                  }`}>
+                  {l}
+                </button>
+              ))}
+            </div>
             {/* Modal Form */}
             {showForm && (
               <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
@@ -180,13 +199,22 @@ export default function AdminPlanosPage() {
                           className="w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500" />
                       </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-300 mb-1 block">Tipo de Usuário *</label>
-                      <select value={form.tipo_usuario} onChange={(e) => setForm({ ...form, tipo_usuario: e.target.value })}
-                        className="w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500">
-                        <option value="prestador">Prestador</option>
-                        <option value="contratante">Contratante</option>
-                      </select>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm font-medium text-gray-300 mb-1 block">Tipo de Usuário *</label>
+                        <select value={form.tipo_usuario} onChange={(e) => setForm({ ...form, tipo_usuario: e.target.value })}
+                          disabled={isCadastroEdit}
+                          className={`w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500 ${isCadastroEdit ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                          <option value="prestador">Prestador</option>
+                          <option value="contratante">Contratante</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-300 mb-1 block">Categoria</label>
+                        <div className="w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-gray-400">
+                          {form.categoria === 'cadastro' ? 'Plano de Cadastro' : 'Plano de Serviço'}
+                        </div>
+                      </div>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-300 mb-1 block">Recursos (separados por vírgula)</label>
@@ -223,20 +251,25 @@ export default function AdminPlanosPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {planos.map((plano) => (
+                {planos.filter((p) => filtroCategoria === 'todos' || (p.categoria || 'servico') === filtroCategoria).map((plano) => (
                   <div key={plano.id} className={`bg-gray-800 border rounded-xl p-5 ${plano.ativo ? 'border-gray-700' : 'border-red-900/50 opacity-60'}`}>
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <h3 className="font-bold text-white">{plano.nome}</h3>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${plano.tipo_usuario === 'prestador' ? 'bg-blue-500/20 text-blue-400' : 'bg-violet-500/20 text-violet-400'}`}>
-                          {plano.tipo_usuario === 'prestador' ? 'Prestador' : 'Contratante'}
-                        </span>
+                        <div className="flex gap-1 flex-wrap">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${plano.tipo_usuario === 'prestador' ? 'bg-blue-500/20 text-blue-400' : 'bg-violet-500/20 text-violet-400'}`}>
+                            {plano.tipo_usuario === 'prestador' ? 'Prestador' : 'Contratante'}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${(plano.categoria || 'servico') === 'cadastro' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                            {(plano.categoria || 'servico') === 'cadastro' ? 'Cadastro' : 'Serviço'}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex gap-1">
                         <button onClick={() => openEdit(plano)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white">
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        {plano.ativo && (
+                        {plano.ativo && (plano.categoria || 'servico') !== 'cadastro' && (
                           <button onClick={() => handleDelete(plano.id)} className="p-1.5 rounded-lg hover:bg-gray-700 text-red-400 hover:text-red-300">
                             <Trash2 className="w-4 h-4" />
                           </button>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
@@ -27,6 +27,14 @@ interface Solicitacao {
 }
 
 export default function AdminFuncoesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-900"><Loader2 className="w-8 h-8 animate-spin text-brand-400" /></div>}>
+      <AdminFuncoesContent />
+    </Suspense>
+  );
+}
+
+function AdminFuncoesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAppStore();

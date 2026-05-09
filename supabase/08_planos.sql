@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS planos (
   valor DECIMAL(10,2) NOT NULL DEFAULT 0,
   duracao_dias INTEGER NOT NULL DEFAULT 30,
   tipo_usuario user_type NOT NULL DEFAULT 'prestador',
+  categoria TEXT NOT NULL DEFAULT 'servico',
   ativo BOOLEAN DEFAULT true,
   recursos JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),

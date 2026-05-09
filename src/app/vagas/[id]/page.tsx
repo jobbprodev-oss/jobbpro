@@ -8,6 +8,7 @@ import Header from '@/components/header';
 import AuthProvider from '@/components/auth-provider';
 import PrestadorCard from '@/components/prestador-card';
 import { Loader2, MapPin, Calendar, Clock, Shirt, Users, FileText, Heart } from 'lucide-react';
+import DisponibilidadeCheckModal from '@/components/disponibilidade-check-modal';
 import { formatCurrency, formatDate, formatTime, getVestimentaLabel } from '@/lib/utils';
 import type { Vaga, PrestadorCompativel } from '@/lib/types';
 import toast from 'react-hot-toast';
@@ -21,6 +22,7 @@ export default function VagaDetailPage() {
   const [vaga, setVaga] = useState<Vaga | null>(null);
   const [prestadores, setPrestadores] = useState<PrestadorCompativel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDisponibilidadeModal, setShowDisponibilidadeModal] = useState(false);
 
   useEffect(() => {
     if (vagaId) fetchVaga();
@@ -168,36 +170,7 @@ export default function VagaDetailPage() {
           const funcaoCompativel = funcoesPrestador.includes(vaga.funcao_principal);
           return funcaoCompativel ? (
           <button
-            onClick={async () => {
-              if (jaEnviou || enviando) return;
-              setEnviando(true);
-              try {
-                const token = await getAuthToken();
-                const res = await fetch('/api/match', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                  body: JSON.stringify({
-                    vaga_id: vagaId,
-                    prestador_id: prestadorPerfil.id,
-                    action: 'criar',
-                    match_score: 0,
-                  }),
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error);
-                toast.success('Interesse enviado! Aguarde resposta do contratante.');
-                setJaEnviou(true);
-              } catch (err: any) {
-                if (err.message?.includes('já existe')) {
-                  toast.error('Você já demonstrou interesse nesta vaga');
-                  setJaEnviou(true);
-                } else {
-                  toast.error(err.message || 'Erro ao enviar interesse');
-                }
-              } finally {
-                setEnviando(false);
-              }
-            }}
+            onClick={() => setShowDisponibilidadeModal(true)}
             disabled={enviando || jaEnviou}
             className={`w-full mt-4 flex items-center justify-center gap-2 ${
               jaEnviou ? 'btn-secondary text-emerald-600' : 'btn-primary'
@@ -218,6 +191,44 @@ export default function VagaDetailPage() {
             </div>
           );
         })()}
+
+        <DisponibilidadeCheckModal
+          isOpen={showDisponibilidadeModal}
+          onClose={() => setShowDisponibilidadeModal(false)}
+          vagaData={vaga.data}
+          vagaHorarioInicio={vaga.horario_inicio}
+          vagaHorarioFim={vaga.horario_fim}
+          onConfirm={async () => {
+            if (jaEnviou || enviando) return;
+            setEnviando(true);
+            try {
+              const token = await getAuthToken();
+              const res = await fetch('/api/match', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({
+                  vaga_id: vagaId,
+                  prestador_id: prestadorPerfil!.id,
+                  action: 'criar',
+                  match_score: 0,
+                }),
+              });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.error);
+              toast.success('Interesse enviado! Aguarde resposta do contratante.');
+              setJaEnviou(true);
+            } catch (err: any) {
+              if (err.message?.includes('já existe')) {
+                toast.error('Você já demonstrou interesse nesta vaga');
+                setJaEnviou(true);
+              } else {
+                toast.error(err.message || 'Erro ao enviar interesse');
+              }
+            } finally {
+              setEnviando(false);
+            }
+          }}
+        />
       </div>
     </div>
     </AuthProvider>

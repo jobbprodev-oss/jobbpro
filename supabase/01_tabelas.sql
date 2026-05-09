@@ -12,7 +12,7 @@ CREATE TABLE users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   tipo user_type NOT NULL,
   nome TEXT NOT NULL,
-  cpf_cnpj TEXT NOT NULL UNIQUE,
+  cpf_cnpj TEXT NOT NULL,
   rg TEXT,
   data_nascimento DATE,
   celular TEXT NOT NULL,
@@ -26,11 +26,17 @@ CREATE TABLE users (
   estado TEXT,
   foto_url TEXT,
   foto_documento_url TEXT,
+  indicacao BOOLEAN DEFAULT false,
+  indicacao_nome TEXT,
+  indicacao_telefone TEXT,
   ativo BOOLEAN DEFAULT true,
   termo_aceite BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Mesmo CPF pode ter 1 conta prestador e 1 conta contratante
+CREATE UNIQUE INDEX users_cpf_cnpj_tipo_unique ON users (cpf_cnpj, tipo);
 
 CREATE TABLE prestador_perfil (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -38,6 +44,9 @@ CREATE TABLE prestador_perfil (
   funcao_principal TEXT NOT NULL,
   funcao_2 TEXT,
   funcao_3 TEXT,
+  funcao_4 TEXT,
+  funcao_5 TEXT,
+  funcao_6 TEXT,
   valor_pretendido DECIMAL(10,2),
   vestimenta vestimenta_tipo DEFAULT 'casual',
   aceita_negociacao BOOLEAN DEFAULT false,

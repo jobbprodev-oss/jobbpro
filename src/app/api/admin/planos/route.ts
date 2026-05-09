@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { nome, descricao, valor, duracao_dias, tipo_usuario, recursos } = body;
+    const { nome, descricao, valor, duracao_dias, tipo_usuario, categoria, recursos } = body;
 
     if (!nome || valor === undefined || !duracao_dias || !tipo_usuario) {
       return NextResponse.json({ error: 'Campos obrigatórios ausentes' }, { status: 400 });
@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
       valor,
       duracao_dias,
       tipo_usuario,
+      categoria: categoria || 'servico',
       ativo: true,
       recursos: recursos || [],
     }).select().single();

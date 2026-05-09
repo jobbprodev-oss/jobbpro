@@ -6,10 +6,12 @@ import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { getAuthToken, supabase, uploadImage } from '@/lib/supabase';
 import AuthProvider from '@/components/auth-provider';
-import { Loader2, ArrowLeft, UserPlus, Check, Upload, FileText, X } from 'lucide-react';
+import { Loader2, ArrowLeft, UserPlus, Check, Upload, FileText, X, PlusCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { FUNCOES_DISPONIVEIS, ESTADOS_BR } from '@/lib/types';
 import type { Plano } from '@/lib/types';
+import SearchableSelect from '@/components/searchable-select';
+import SolicitarFuncaoModal from '@/components/solicitar-funcao-modal';
 import toast from 'react-hot-toast';
 
 export default function AdminNovoUsuarioPage() {
@@ -19,6 +21,7 @@ export default function AdminNovoUsuarioPage() {
   const [saving, setSaving] = useState(false);
   const [docFile, setDocFile] = useState<File | null>(null);
   const [docPreview, setDocPreview] = useState<string | null>(null);
+  const [showSolicitarFuncao, setShowSolicitarFuncao] = useState(false);
   const [form, setForm] = useState({
     nome: '',
     email: '',
@@ -30,6 +33,8 @@ export default function AdminNovoUsuarioPage() {
     estado: '',
     plano_id: '',
     funcao_principal: '',
+    funcao_2: '',
+    funcao_3: '',
     nome_empresa: '',
   });
 
@@ -58,6 +63,10 @@ export default function AdminNovoUsuarioPage() {
     e.preventDefault();
     if (!form.nome || !form.email || !form.password || !form.cpf_cnpj || !form.celular) {
       toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+    if (!docFile) {
+      toast.error('Foto do documento é obrigatória');
       return;
     }
     setSaving(true);
@@ -173,8 +182,8 @@ export default function AdminNovoUsuarioPage() {
 
               {/* Documento RG/CNH */}
               <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
-                <h2 className="font-semibold mb-4">Documento (RG ou CNH)</h2>
-                <p className="text-sm text-gray-400 mb-3">Envie uma foto ou PDF do documento de identificação.</p>
+                <h2 className="font-semibold mb-4">Documento (RG ou CNH) *</h2>
+                <p className="text-sm text-gray-400 mb-3">Envie uma foto ou PDF do documento de identificação. <span className="text-red-400">(Obrigatório)</span></p>
                 {docFile ? (
                   <div className="flex items-center gap-3 p-3 bg-gray-900 border border-gray-600 rounded-lg">
                     <FileText className="w-5 h-5 text-brand-400 flex-shrink-0" />
@@ -215,13 +224,39 @@ export default function AdminNovoUsuarioPage() {
               {form.tipo === 'prestador' && (
                 <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
                   <h2 className="font-semibold mb-4">Dados Profissionais</h2>
-                  <div>
-                    <label className="text-sm font-medium text-gray-300 mb-1 block">Função Principal</label>
-                    <select value={form.funcao_principal} onChange={(e) => updateForm('funcao_principal', e.target.value)}
-                      className="w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500">
-                      <option value="">Selecione</option>
-                      {FUNCOES_DISPONIVEIS.map((f) => <option key={f} value={f}>{f}</option>)}
-                    </select>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-300 mb-1 block">Função Principal *</label>
+                      <SearchableSelect
+                        value={form.funcao_principal}
+                        onChange={(v) => updateForm('funcao_principal', v)}
+                        options={FUNCOES_DISPONIVEIS.filter((f) => f !== form.funcao_2 && f !== form.funcao_3)}
+                        placeholder="Buscar função..."
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-300 mb-1 block">Função 2</label>
+                      <SearchableSelect
+                        value={form.funcao_2}
+                        onChange={(v) => updateForm('funcao_2', v)}
+                        options={FUNCOES_DISPONIVEIS.filter((f) => f !== form.funcao_principal && f !== form.funcao_3)}
+                        placeholder="Opcional"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-300 mb-1 block">Função 3</label>
+                      <SearchableSelect
+                        value={form.funcao_3}
+                        onChange={(v) => updateForm('funcao_3', v)}
+                        options={FUNCOES_DISPONIVEIS.filter((f) => f !== form.funcao_principal && f !== form.funcao_2)}
+                        placeholder="Opcional"
+                      />
+                    </div>
+                    <button type="button" onClick={() => setShowSolicitarFuncao(true)}
+                      className="flex items-center gap-1.5 text-sm text-brand-400 hover:text-brand-300 font-medium">
+                      <PlusCircle className="w-4 h-4" /> Não encontrou a função? Solicitar nova
+                    </button>
+                    <SolicitarFuncaoModal open={showSolicitarFuncao} onClose={() => setShowSolicitarFuncao(false)} />
                   </div>
                 </div>
               )}

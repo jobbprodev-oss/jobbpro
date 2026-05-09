@@ -1,16 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import Header from '@/components/header';
 import BottomNav from '@/components/bottom-nav';
 import AuthProvider from '@/components/auth-provider';
 import RatingStars from '@/components/rating-stars';
-import { User as UserIcon, Phone, Mail, MapPin, Briefcase, DollarSign, Star, Shield, Edit, Loader2 } from 'lucide-react';
+import AdicionarFuncaoModal from '@/components/adicionar-funcao-modal';
+import { User as UserIcon, Phone, Mail, MapPin, Briefcase, DollarSign, Star, Shield, Edit, Loader2, PlusCircle } from 'lucide-react';
 import { formatCurrency, getVestimentaLabel, formatPhone } from '@/lib/utils';
 
 export default function PerfilPage() {
   const { user, prestadorPerfil, contratantePerfil, loading } = useAppStore();
+  const [showAdicionarFuncao, setShowAdicionarFuncao] = useState(false);
 
   const isPrestador = user?.tipo === 'prestador';
 
@@ -101,6 +104,24 @@ export default function PerfilPage() {
                     <span className="font-medium">{prestadorPerfil.funcao_3}</span>
                   </>
                 )}
+                {prestadorPerfil.funcao_4 && (
+                  <>
+                    <span className="text-gray-500">Função 4:</span>
+                    <span className="font-medium">{prestadorPerfil.funcao_4}</span>
+                  </>
+                )}
+                {prestadorPerfil.funcao_5 && (
+                  <>
+                    <span className="text-gray-500">Função 5:</span>
+                    <span className="font-medium">{prestadorPerfil.funcao_5}</span>
+                  </>
+                )}
+                {prestadorPerfil.funcao_6 && (
+                  <>
+                    <span className="text-gray-500">Função 6:</span>
+                    <span className="font-medium">{prestadorPerfil.funcao_6}</span>
+                  </>
+                )}
                 <span className="text-gray-500">Valor:</span>
                 <span className="font-medium text-emerald-600">
                   {prestadorPerfil.valor_pretendido ? formatCurrency(prestadorPerfil.valor_pretendido) : '—'}
@@ -117,6 +138,11 @@ export default function PerfilPage() {
                   <p className="text-sm text-gray-600">{prestadorPerfil.descricao}</p>
                 </div>
               )}
+              <button type="button" onClick={() => setShowAdicionarFuncao(true)}
+                className="flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 font-medium pt-2">
+                <PlusCircle className="w-4 h-4" /> Adicionar mais função
+              </button>
+              <AdicionarFuncaoModal open={showAdicionarFuncao} onClose={() => setShowAdicionarFuncao(false)} />
             </div>
           )}
 

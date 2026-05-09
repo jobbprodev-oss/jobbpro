@@ -78,6 +78,8 @@ export async function POST(request: NextRequest) {
       await getAdmin().from('prestador_perfil').insert({
         user_id: authData.user.id,
         funcao_principal: body.funcao_principal || 'Auxiliar Geral',
+        funcao_2: body.funcao_2 || null,
+        funcao_3: body.funcao_3 || null,
         vestimenta: 'casual',
         disponivel: true,
       });

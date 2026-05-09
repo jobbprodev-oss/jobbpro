@@ -3,15 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Camera, Loader2, CheckCircle2, Upload, PlusCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera, Loader2, CheckCircle2, Upload, PlusCircle, QrCode, Copy, Clock } from 'lucide-react';
 import { supabase, uploadImage } from '@/lib/supabase';
 import { FUNCOES_DISPONIVEIS, ESTADOS_BR } from '@/lib/types';
 import SearchableSelect from '@/components/searchable-select';
-import SolicitarFuncaoModal from '@/components/solicitar-funcao-modal';
 import { maskCPF, maskPhone, maskCEP } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5;
 
 export default function RegisterPrestadorPage() {
   const router = useRouter();
@@ -21,7 +20,11 @@ export default function RegisterPrestadorPage() {
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   const [docFile, setDocFile] = useState<File | null>(null);
   const [buscandoCep, setBuscandoCep] = useState(false);
-  const [showSolicitarFuncao, setShowSolicitarFuncao] = useState(false);
+  const [funcaoCustom, setFuncaoCustom] = useState('');
+  const [showInputCustom, setShowInputCustom] = useState(false);
+  const [pixData, setPixData] = useState<{ asaas_payment_id: string; qr_code: string; copia_cola: string; valor: number; plano_id: string; plano_nome: string; duracao_dias: number } | null>(null);
+  const [pixLoading, setPixLoading] = useState(false);
+  const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
 
   const buscarCep = async (cep: string) => {
     const cepLimpo = cep.replace(/\D/g, '');
@@ -66,6 +69,9 @@ export default function RegisterPrestadorPage() {
     vestimenta: 'casual',
     aceita_negociacao: false,
     descricao: '',
+    indicacao: false,
+    indicacao_nome: '',
+    indicacao_telefone: '',
     termo_aceite: false,
   });
 
@@ -120,19 +126,59 @@ export default function RegisterPrestadorPage() {
           return false;
         }
         return true;
+      default:
+        return true;
     }
   };
 
   const nextStep = () => {
     if (validateStep(step)) {
-      setStep((s) => Math.min(s + 1, 4) as Step);
+      setStep((s) => Math.min(s + 1, 5) as Step);
     }
   };
 
   const prevStep = () => setStep((s) => Math.max(s - 1, 1) as Step);
 
+  const gerarPixCadastro = async () => {
+    setPixLoading(true);
+    try {
+      const res = await fetch('/api/pagamentos/cadastro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo_usuario: 'prestador',
+          nome: form.nome,
+          cpf: form.cpf,
+          celular: form.celular,
+          email: form.email,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setPixData(data);
+      // Iniciar polling
+      const interval = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`/api/pagamentos/cadastro?payment_id=${data.asaas_payment_id}`);
+          const statusData = await statusRes.json();
+          if (statusData.status === 'CONFIRMED') {
+            clearInterval(interval);
+            setPagamentoConfirmado(true);
+          }
+        } catch {}
+      }, 5000);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao gerar PIX');
+    } finally {
+      setPixLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!validateStep(4)) return;
+    if (!pagamentoConfirmado) {
+      toast.error('Aguarde a confirmação do pagamento');
+      return;
+    }
     setLoading(true);
 
     try {
@@ -187,6 +233,9 @@ export default function RegisterPrestadorPage() {
         estado: form.estado,
         foto_url: fotoUrl,
         foto_documento_url: docUrl,
+        indicacao: form.indicacao,
+        indicacao_nome: form.indicacao ? form.indicacao_nome : null,
+        indicacao_telefone: form.indicacao ? form.indicacao_telefone.replace(/\D/g, '') : null,
         termo_aceite: form.termo_aceite,
       }, { onConflict: 'id' });
       if (userError) throw userError;
@@ -202,6 +251,31 @@ export default function RegisterPrestadorPage() {
         descricao: form.descricao,
       }, { onConflict: 'user_id' });
       if (perfilError) throw perfilError;
+
+      // Se solicitou função customizada, enviar após registro (agora autenticado)
+      if (funcaoCustom.trim()) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            await fetch('/api/funcoes/solicitar', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+              body: JSON.stringify({ nome_funcao: funcaoCustom.trim() }),
+            });
+          }
+        } catch {}
+      }
+
+      // Vincular plano ao usuário
+      if (pixData?.plano_id) {
+        const expira = new Date();
+        expira.setDate(expira.getDate() + (pixData.duracao_dias || 365));
+        await supabase.from('users').update({
+          plano_id: pixData.plano_id,
+          plano_ativo: true,
+          plano_expira_em: expira.toISOString(),
+        }).eq('id', userId);
+      }
 
       toast.success('Cadastro realizado com sucesso!');
       router.push('/dashboard/prestador');
@@ -226,10 +300,10 @@ export default function RegisterPrestadorPage() {
             </Link>
           )}
           <h1 className="font-semibold text-gray-900">Cadastro Prestador</h1>
-          <span className="ml-auto text-sm text-gray-400">Passo {step}/4</span>
+          <span className="ml-auto text-sm text-gray-400">Passo {step}/5</span>
         </div>
         <div className="h-1 bg-gray-100">
-          <div className="h-full bg-brand-600 transition-all duration-300" style={{ width: `${(step / 4) * 100}%` }} />
+          <div className="h-full bg-brand-600 transition-all duration-300" style={{ width: `${(step / 5) * 100}%` }} />
         </div>
       </header>
 
@@ -372,11 +446,23 @@ export default function RegisterPrestadorPage() {
                 placeholder="Opcional"
               />
             </div>
-            <button type="button" onClick={() => setShowSolicitarFuncao(true)}
-              className="flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 font-medium">
-              <PlusCircle className="w-4 h-4" /> Não encontrou sua função? Solicitar nova
-            </button>
-            <SolicitarFuncaoModal open={showSolicitarFuncao} onClose={() => setShowSolicitarFuncao(false)} />
+            {!showInputCustom ? (
+              <button type="button" onClick={() => setShowInputCustom(true)}
+                className="flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 font-medium">
+                <PlusCircle className="w-4 h-4" /> Não encontrou sua função? Solicitar nova
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Nome da função que deseja solicitar</label>
+                <input
+                  value={funcaoCustom}
+                  onChange={(e) => setFuncaoCustom(e.target.value)}
+                  placeholder="Ex: Sommelier, Chef de Cozinha..."
+                  className="input-field"
+                />
+                <p className="text-xs text-gray-500">Será enviada para aprovação do administrador após o cadastro.</p>
+              </div>
+            )}
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Valor pretendido (R$)</label>
               <input type="number" step="0.01" value={form.valor_pretendido} onChange={(e) => updateForm('valor_pretendido', e.target.value)} className="input-field" placeholder="150.00" />
@@ -420,6 +506,25 @@ export default function RegisterPrestadorPage() {
               </div>
             </div>
 
+            <div className="card p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <input type="checkbox" id="indicacao" checked={form.indicacao} onChange={(e) => updateForm('indicacao', e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
+                <label htmlFor="indicacao" className="text-sm font-medium text-gray-700">Foi indicação?</label>
+              </div>
+              {form.indicacao && (
+                <div className="space-y-3 pl-8">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">Nome de quem indicou *</label>
+                    <input type="text" value={form.indicacao_nome} onChange={(e) => updateForm('indicacao_nome', e.target.value)} className="input-field" placeholder="Nome completo" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">Telefone de quem indicou *</label>
+                    <input type="tel" value={form.indicacao_telefone} onChange={(e) => updateForm('indicacao_telefone', maskPhone(e.target.value))} className="input-field" placeholder="(11) 99999-9999" maxLength={15} />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="card p-4">
               <div className="flex items-start gap-3">
                 <input type="checkbox" id="termos" checked={form.termo_aceite} onChange={(e) => updateForm('termo_aceite', e.target.checked)} className="w-5 h-5 mt-0.5 rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
@@ -433,17 +538,87 @@ export default function RegisterPrestadorPage() {
           </div>
         )}
 
+        {step === 5 && (
+          <div className="space-y-4 animate-slide-up">
+            <h2 className="section-title">Pagamento do Cadastro</h2>
+
+            {!pixData && !pixLoading && (
+              <div className="card p-4 space-y-4">
+                <p className="text-sm text-gray-600">
+                  Para finalizar seu cadastro, é necessário o pagamento do plano via PIX.
+                </p>
+                <button onClick={gerarPixCadastro} className="btn-primary w-full flex items-center justify-center gap-2">
+                  <QrCode className="w-5 h-5" /> Gerar PIX para pagamento
+                </button>
+              </div>
+            )}
+
+            {pixLoading && (
+              <div className="flex flex-col items-center py-8 gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
+                <p className="text-sm text-gray-500">Gerando cobrança PIX...</p>
+              </div>
+            )}
+
+            {pixData && !pagamentoConfirmado && (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <p className="text-sm text-gray-500 mb-1">{pixData.plano_nome}</p>
+                  <p className="text-2xl font-bold text-gray-900">R$ {pixData.valor.toFixed(2).replace('.', ',')}</p>
+                  <p className="text-xs text-gray-400 mt-1">Validade: {pixData.duracao_dias} dias</p>
+                </div>
+
+                <div className="flex justify-center">
+                  <div className="p-3 bg-white border-2 border-gray-200 rounded-xl">
+                    <img src={`data:image/png;base64,${pixData.qr_code}`} alt="QR Code PIX" className="w-48 h-48" />
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-1">PIX Copia e Cola:</p>
+                  <div className="flex items-center gap-2">
+                    <input readOnly value={pixData.copia_cola || ''} className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 truncate" />
+                    <button onClick={() => { navigator.clipboard.writeText(pixData.copia_cola); toast.success('Código copiado!'); }}
+                      className="flex items-center gap-1 px-3 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium">
+                      <Copy className="w-3.5 h-3.5" /> Copiar
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <Clock className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                  <p className="text-xs text-amber-700">Aguardando pagamento... Verificação automática a cada 5 segundos.</p>
+                </div>
+              </div>
+            )}
+
+            {pagamentoConfirmado && (
+              <div className="text-center space-y-4 py-4">
+                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">Pagamento confirmado!</h3>
+                <p className="text-sm text-gray-500">Clique abaixo para finalizar seu cadastro.</p>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="mt-8">
           {step < 4 ? (
             <button onClick={nextStep} className="btn-primary w-full flex items-center justify-center gap-2">
               Próximo <ArrowRight className="w-5 h-5" />
             </button>
-          ) : (
+          ) : step === 4 ? (
+            <button onClick={nextStep} className="btn-primary w-full flex items-center justify-center gap-2">
+              Próximo: Pagamento <ArrowRight className="w-5 h-5" />
+            </button>
+          ) : pagamentoConfirmado ? (
             <button onClick={handleSubmit} disabled={loading} className="btn-success w-full flex items-center justify-center gap-2">
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
               {loading ? 'Cadastrando...' : 'Finalizar Cadastro'}
             </button>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

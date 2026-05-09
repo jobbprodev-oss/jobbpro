@@ -1,6 +1,7 @@
 export type UserType = 'prestador' | 'contratante' | 'admin';
 export type MatchStatus = 'pendente' | 'aceito' | 'confirmado' | 'recusado' | 'concluido' | 'cancelado';
 export type VestimentaTipo = 'social' | 'casual' | 'uniforme' | 'esporte_fino' | 'outro';
+export type PlanoCategoria = 'servico' | 'cadastro';
 
 export interface User {
   id: string;
@@ -35,6 +36,9 @@ export interface PrestadorPerfil {
   funcao_principal: string;
   funcao_2?: string;
   funcao_3?: string;
+  funcao_4?: string;
+  funcao_5?: string;
+  funcao_6?: string;
   valor_pretendido?: number;
   vestimenta: VestimentaTipo;
   aceita_negociacao: boolean;
@@ -188,6 +192,7 @@ export interface Plano {
   valor: number;
   duracao_dias: number;
   tipo_usuario: UserType;
+  categoria: PlanoCategoria;
   ativo: boolean;
   recursos: string[];
   created_at: string;
