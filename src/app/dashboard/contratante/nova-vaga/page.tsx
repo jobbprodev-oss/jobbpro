@@ -10,6 +10,7 @@ import { Loader2, CheckCircle2, PlusCircle } from 'lucide-react';
 import { FUNCOES_DISPONIVEIS, ESTADOS_BR } from '@/lib/types';
 import SearchableSelect from '@/components/searchable-select';
 import SolicitarFuncaoModal from '@/components/solicitar-funcao-modal';
+import VagaPagamentoModal from '@/components/vaga-pagamento-modal';
 import { maskCEP } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -38,6 +39,7 @@ export default function NovaVagaPage() {
 
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [showSolicitarFuncao, setShowSolicitarFuncao] = useState(false);
+  const [showPagamentoModal, setShowPagamentoModal] = useState(false);
 
   const updateForm = (field: string, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -68,7 +70,7 @@ export default function NovaVagaPage() {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!form.titulo || !form.funcao_principal || !form.data || !form.horario_inicio || !form.horario_fim) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
@@ -86,36 +88,7 @@ export default function NovaVagaPage() {
       return;
     }
 
-    setLoading(true);
-    try {
-      const { error } = await supabase.from('vagas').insert({
-        contratante_id: contratantePerfil.id,
-        titulo: form.titulo,
-        funcao_principal: form.funcao_principal,
-        data: form.data,
-        horario_inicio: form.horario_inicio,
-        horario_fim: form.horario_fim,
-        local_servico: form.local_servico,
-        endereco_completo: [form.endereco_completo, form.numero_complemento].filter(Boolean).join(', '),
-        cep: form.cep,
-        cidade: form.cidade,
-        bairro: form.bairro,
-        estado: form.estado,
-        valor_oferecido: parseFloat(form.valor_oferecido),
-        vestimenta: form.vestimenta,
-        descricao: form.descricao,
-        vagas_disponiveis: 1,
-        termo_aceite: form.termo_aceite,
-      });
-      if (error) throw error;
-
-      toast.success('Vaga publicada com sucesso!');
-      router.push('/dashboard/contratante');
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao publicar vaga');
-    } finally {
-      setLoading(false);
-    }
+    setShowPagamentoModal(true);
   };
 
   return (
@@ -243,6 +216,15 @@ export default function NovaVagaPage() {
           {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
           {loading ? 'Publicando...' : 'Publicar Vaga'}
         </button>
+
+        <VagaPagamentoModal
+          isOpen={showPagamentoModal}
+          onClose={() => setShowPagamentoModal(false)}
+          vagaData={form}
+          onSuccess={() => {
+            router.push('/dashboard/contratante');
+          }}
+        />
       </div>
     </div>
     </AuthProvider>

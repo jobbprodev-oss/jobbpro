@@ -9,14 +9,20 @@ function getAdmin(): SupabaseClient {
   return _client;
 }
 
+const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://api.asaas.com/v3';
+function getAsaasKey() {
+  const rawKey = process.env.ASAAS_API_KEY || '';
+  if (!rawKey) {
+    throw new Error('Chave do Asaas não configurada. Configure ASAAS_API_KEY nas variáveis de ambiente.');
+  }
+  return rawKey.startsWith('$') ? rawKey : `$${rawKey}`;
+}
+
 export const dynamic = 'force-dynamic';
 
 // GET - Verificar status do pagamento
 export async function GET(request: NextRequest) {
   try {
-    const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://api.asaas.com/v3';
-    const rawKey = process.env.ASAAS_API_KEY || '';
-    const ASAAS_API_KEY = rawKey.startsWith('$') ? rawKey : `$${rawKey}`;
 
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     if (!token) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
@@ -53,7 +59,7 @@ export async function GET(request: NextRequest) {
         // Se não encontrou em nenhum, verifica direto no Asaas (para pagamentos novos)
         console.log('[PIX_STATUS] Pagamento não encontrado no banco, consultando Asaas diretamente');
         const asaasRes = await fetch(`${ASAAS_API_URL}/payments/${pagamentoId}`, {
-          headers: { access_token: ASAAS_API_KEY },
+          headers: { access_token: getAsaasKey() },
           cache: 'no-store',
         });
         
@@ -84,6 +90,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Consultar status no Asaas
+    const ASAAS_API_KEY = getAsaasKey();
     console.log('[PIX_STATUS] Consultando payment:', pagamento.asaas_payment_id, 'Key length:', ASAAS_API_KEY.length);
     const asaasRes = await fetch(`${ASAAS_API_URL}/payments/${pagamento.asaas_payment_id}`, {
       headers: { access_token: ASAAS_API_KEY },

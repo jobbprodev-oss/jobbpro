@@ -20,6 +20,8 @@ interface UserRow {
   estado?: string;
   ativo: boolean;
   created_at: string;
+  avaliacao?: number;
+  total_avaliacoes?: number;
 }
 
 export default function AdminUsuariosPage() {
@@ -43,14 +45,45 @@ export default function AdminUsuariosPage() {
   const fetchUsuarios = async () => {
     setLoading(true);
     try {
-      let query = supabase
+      // First fetch all users
+      const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, tipo, nome, email, celular, cidade, estado, ativo, created_at')
         .order('created_at', { ascending: false });
 
-      const { data, error } = await query;
-      if (error) throw error;
-      setUsuarios(data || []);
+      if (usersError) throw usersError;
+      
+      // Then fetch ratings for users with profiles
+      const userIds = (users || []).map(u => u.id);
+      if (userIds.length === 0) {
+        setUsuarios([]);
+        return;
+      }
+      
+      const { data: prestadorRatings } = await supabase
+        .from('prestador_perfil')
+        .select('id, user_id, avaliacao, total_avaliacoes')
+        .in('user_id', userIds);
+        
+      const { data: contratanteRatings } = await supabase
+        .from('contratante_perfil')
+        .select('id, user_id, avaliacao, total_avaliacoes')
+        .in('user_id', userIds);
+      
+      // Process ratings
+      const processedData = (users || []).map(user => {
+        const prestadorRating = prestadorRatings?.find(r => r.user_id === user.id);
+        const contratanteRating = contratanteRatings?.find(r => r.user_id === user.id);
+        const rating = prestadorRating || contratanteRating;
+        
+        return {
+          ...user,
+          avaliacao: rating?.avaliacao,
+          total_avaliacoes: rating?.total_avaliacoes,
+        };
+      });
+      
+      setUsuarios(processedData);
     } catch (err) {
       console.error('Erro:', err);
     } finally {
@@ -163,6 +196,7 @@ export default function AdminUsuariosPage() {
                       <th className="pb-3 font-medium">Tipo</th>
                       <th className="pb-3 font-medium hidden sm:table-cell">Email</th>
                       <th className="pb-3 font-medium hidden md:table-cell">Cidade</th>
+                      <th className="pb-3 font-medium">Avaliação</th>
                       <th className="pb-3 font-medium hidden md:table-cell">Cadastro</th>
                       <th className="pb-3 font-medium">Status</th>
                       <th className="pb-3 font-medium text-right">Ações</th>
@@ -182,6 +216,19 @@ export default function AdminUsuariosPage() {
                         <td className="py-3 text-gray-400 hidden sm:table-cell">{u.email || '—'}</td>
                         <td className="py-3 text-gray-400 hidden md:table-cell">
                           {u.cidade ? `${u.cidade}${u.estado ? `/${u.estado}` : ''}` : '—'}
+                        </td>
+                        <td className="py-3">
+                          {u.avaliacao ? (
+                            <div className="flex items-center gap-1">
+                              <span className="text-yellow-400">⭐</span>
+                              <span className="text-white font-medium">{u.avaliacao.toFixed(1)}</span>
+                              {u.total_avaliacoes && (
+                                <span className="text-xs text-gray-500">({u.total_avaliacoes})</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-500 text-sm">—</span>
+                          )}
                         </td>
                         <td className="py-3 text-gray-500 hidden md:table-cell">{formatDate(u.created_at.split('T')[0])}</td>
                         <td className="py-3">

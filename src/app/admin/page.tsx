@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import AuthProvider from '@/components/auth-provider';
-import { Loader2, Users, Briefcase, ClipboardList, Star, Shield, LogOut, TrendingUp, AlertTriangle, CreditCard, Tag, Bell } from 'lucide-react';
+import { Loader2, Users, Briefcase, ClipboardList, Star, Shield, LogOut, TrendingUp, AlertTriangle, CreditCard, Tag, Bell, FileText } from 'lucide-react';
 
 interface Stats {
   totalUsers: number;
@@ -157,6 +157,11 @@ export default function AdminDashboardPage() {
                 <ClipboardList className="w-8 h-8 text-yellow-400 mb-3 group-hover:scale-110 transition-transform" />
                 <h4 className="font-semibold text-white">Matches</h4>
                 <p className="text-sm text-gray-400 mt-1">Acompanhar contratos e serviços</p>
+              </Link>
+              <Link href="/admin/termos" className="bg-gray-800 border border-gray-700 rounded-xl p-5 hover:border-brand-500 transition-colors group">
+                <FileText className="w-8 h-8 text-red-400 mb-3 group-hover:scale-110 transition-transform" />
+                <h4 className="font-semibold text-white">Termos e Políticas</h4>
+                <p className="text-sm text-gray-400 mt-1">Configurar termos de uso e privacidade</p>
               </Link>
             </div>
           </div>

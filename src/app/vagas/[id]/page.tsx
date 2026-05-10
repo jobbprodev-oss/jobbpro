@@ -202,6 +202,28 @@ export default function VagaDetailPage() {
             if (jaEnviou || enviando) return;
             setEnviando(true);
             try {
+              // Calcular score de compatibilidade
+              const calculateMatchScore = () => {
+                let score = 50; // Base score
+                
+                // Função principal (30%)
+                if (prestadorPerfil!.funcao_principal === vaga.funcao_principal) {
+                  score += 30;
+                } else if (prestadorPerfil!.funcao_2 === vaga.funcao_principal || prestadorPerfil!.funcao_3 === vaga.funcao_principal) {
+                  score += 20;
+                }
+                
+                // Localização (20%) - usando dados do user se disponíveis
+                const prestadorUser = user;
+                if (prestadorUser?.cidade && vaga.cidade && prestadorUser.cidade.toLowerCase() === vaga.cidade.toLowerCase()) {
+                  score += 20;
+                } else if (prestadorUser?.estado && vaga.estado && prestadorUser.estado === vaga.estado) {
+                  score += 10;
+                }
+                
+                return Math.min(Math.round(score), 100);
+              };
+              
               const token = await getAuthToken();
               const res = await fetch('/api/match', {
                 method: 'POST',
@@ -210,7 +232,7 @@ export default function VagaDetailPage() {
                   vaga_id: vagaId,
                   prestador_id: prestadorPerfil!.id,
                   action: 'criar',
-                  match_score: 0,
+                  match_score: calculateMatchScore(),
                 }),
               });
               const data = await res.json();

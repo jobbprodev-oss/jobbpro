@@ -145,11 +145,7 @@ export default function AdminPlanosPage() {
                 <CreditCard className="w-5 h-5 text-brand-400" />
                 <h1 className="text-lg font-bold">Planos</h1>
               </div>
-              {filtroCategoria !== 'cadastro' && (
-                <button onClick={openNew} className="ml-auto flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 rounded-lg text-sm font-medium transition-colors">
-                  <Plus className="w-4 h-4" /> Novo Plano
-                </button>
-              )}
+              {/* Botão Novo Plano oculto */}
             </div>
           </header>
 
@@ -269,11 +265,7 @@ export default function AdminPlanosPage() {
                         <button onClick={() => openEdit(plano)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white">
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        {plano.ativo && (plano.categoria || 'servico') !== 'cadastro' && (
-                          <button onClick={() => handleDelete(plano.id)} className="p-1.5 rounded-lg hover:bg-gray-700 text-red-400 hover:text-red-300">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
+                        {/* Ícone de exclusão oculto */}
                       </div>
                     </div>
                     {plano.descricao && <p className="text-sm text-gray-400 mb-3">{plano.descricao}</p>}

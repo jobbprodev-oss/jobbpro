@@ -37,16 +37,18 @@ export default function LoginPage() {
 
       if (data.user) {
         console.log('[LOGIN] Auth OK, user id:', data.user.id);
-        const { data: userData, error: userErr } = await supabase
-          .from('users')
-          .select('tipo')
-          .eq('id', data.user.id)
-          .maybeSingle();
+        
+        // Verificar usuário via API server-side (bypass RLS, auto-cria admin)
+        const checkRes = await fetch('/api/auth/check-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: data.user.id, email: data.user.email }),
+        });
+        const checkData = await checkRes.json();
+        console.log('[LOGIN] check-user result:', checkData);
 
-        console.log('[LOGIN] userData:', userData, 'error:', userErr);
-
-        if (userData) {
-          const destino = userData.tipo === 'admin' ? '/admin' : `/dashboard/${userData.tipo}`;
+        if (checkData.tipo) {
+          const destino = checkData.tipo === 'admin' ? '/admin' : `/dashboard/${checkData.tipo}`;
           console.log('[LOGIN] Redirecionando para:', destino);
           toast.success('Login realizado!');
           window.location.href = destino;

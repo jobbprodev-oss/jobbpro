@@ -12,6 +12,9 @@ function getAdmin(): SupabaseClient {
 const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://api.asaas.com/v3';
 function getAsaasKey() {
   const rawKey = process.env.ASAAS_API_KEY || '';
+  if (!rawKey) {
+    throw new Error('Chave do Asaas não configurada. Configure ASAAS_API_KEY nas variáveis de ambiente.');
+  }
   return rawKey.startsWith('$') ? rawKey : `$${rawKey}`;
 }
 

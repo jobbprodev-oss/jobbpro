@@ -45,6 +45,7 @@ export default function AdminMatchesPage() {
         .select('id, status, match_score, valor_acordado, created_at, data_aceite, data_conclusao, vagas(titulo, funcao_principal), prestador_perfil(funcao_principal, users(nome)), contratante_perfil(nome_empresa, users(nome))')
         .order('created_at', { ascending: false });
       if (error) throw error;
+      console.log('Matches data:', data); // Debug log
       setMatches((data as any) || []);
     } catch (err) {
       console.error('Erro:', err);
@@ -144,7 +145,7 @@ export default function AdminMatchesPage() {
                       <th className="pb-3 font-medium">Score</th>
                       <th className="pb-3 font-medium hidden md:table-cell">Data</th>
                       <th className="pb-3 font-medium">Status</th>
-                      <th className="pb-3 font-medium text-right">Ações</th>
+                      {/* Coluna Ações oculta */}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800">
@@ -156,18 +157,16 @@ export default function AdminMatchesPage() {
                         </td>
                         <td className="py-3 text-gray-300">{m.prestador_perfil?.users?.nome || '—'}</td>
                         <td className="py-3 text-gray-400 hidden sm:table-cell">{m.contratante_perfil?.users?.nome || '—'}</td>
-                        <td className="py-3 text-brand-400 font-medium">{Math.round(m.match_score)}%</td>
+                        <td className="py-3 text-brand-400 font-medium">
+                          {m.match_score !== null && m.match_score !== undefined ? `${Math.round(m.match_score)}%` : '—'}
+                        </td>
                         <td className="py-3 text-gray-500 hidden md:table-cell">{formatDate(m.created_at.split('T')[0])}</td>
                         <td className="py-3">
                           <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge(m.status)}`}>
                             {getMatchStatusLabel(m.status)}
                           </span>
                         </td>
-                        <td className="py-3 text-right">
-                          <Link href={`/vagas/${m.id}`} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white inline-flex" title="Ver">
-                            <Eye className="w-4 h-4" />
-                          </Link>
-                        </td>
+                        {/* Coluna Ações oculta */}
                       </tr>
                     ))}
                   </tbody>
