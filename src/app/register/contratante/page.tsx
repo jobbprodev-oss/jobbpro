@@ -167,26 +167,34 @@ export default function RegisterContratantePage() {
         userId = authData.user.id;
       }
 
-      const { error: userError } = await supabase.from('users').upsert({
-        id: userId,
-        tipo: 'contratante',
-        nome: form.nome,
-        cpf_cnpj: form.cpf_cnpj.replace(/\D/g, ''),
-        celular: form.celular.replace(/\D/g, ''),
-        email: form.email,
-        cep: form.cep,
-        endereco: form.endereco,
-        numero: form.numero,
-        complemento: form.complemento,
-        bairro: form.bairro,
-        cidade: form.cidade,
-        estado: form.estado,
-        indicacao: form.indicacao,
-        indicacao_nome: form.indicacao ? form.indicacao_nome : null,
-        indicacao_telefone: form.indicacao ? form.indicacao_telefone.replace(/\D/g, '') : null,
-        termo_aceite: form.termo_aceite,
-      }, { onConflict: 'id' });
-      if (userError) throw userError;
+      const upsertRes = await fetch('/api/users/query', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'upsert',
+          record: {
+            id: userId,
+            tipo: 'contratante',
+            nome: form.nome,
+            cpf_cnpj: form.cpf_cnpj.replace(/\D/g, ''),
+            celular: form.celular.replace(/\D/g, ''),
+            email: form.email,
+            cep: form.cep,
+            endereco: form.endereco,
+            numero: form.numero,
+            complemento: form.complemento,
+            bairro: form.bairro,
+            cidade: form.cidade,
+            estado: form.estado,
+            indicacao: form.indicacao,
+            indicacao_nome: form.indicacao ? form.indicacao_nome : null,
+            indicacao_telefone: form.indicacao ? form.indicacao_telefone.replace(/\D/g, '') : null,
+            termo_aceite: form.termo_aceite,
+          },
+        }),
+      });
+      const { error: userError } = await upsertRes.json();
+      if (userError) throw new Error(userError);
 
       const { error: perfilError } = await supabase.from('contratante_perfil').upsert({
         user_id: userId,
@@ -198,11 +206,19 @@ export default function RegisterContratantePage() {
       if (pixData?.plano_id) {
         const expira = new Date();
         expira.setDate(expira.getDate() + (pixData.duracao_dias || 365));
-        await supabase.from('users').update({
-          plano_id: pixData.plano_id,
-          plano_ativo: true,
-          plano_expira_em: expira.toISOString(),
-        }).eq('id', userId);
+        await fetch('/api/users/query', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update',
+            userId,
+            record: {
+              plano_id: pixData.plano_id,
+              plano_ativo: true,
+              plano_expira_em: expira.toISOString(),
+            },
+          }),
+        });
       }
 
       toast.success('Cadastro realizado com sucesso!');

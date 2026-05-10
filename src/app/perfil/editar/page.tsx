@@ -118,23 +118,29 @@ export default function EditarPerfilPage() {
         if (url) fotoUrl = url;
       }
 
-      const { error: userError } = await supabase
-        .from('users')
-        .update({
-          nome: nome.trim(),
-          celular: celular.replace(/\D/g, ''),
-          cep,
-          endereco,
-          numero,
-          complemento,
-          bairro,
-          cidade,
-          estado,
-          foto_url: fotoUrl,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
-      if (userError) throw userError;
+      const updateRes = await fetch('/api/users/query', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update',
+          userId: user.id,
+          record: {
+            nome: nome.trim(),
+            celular: celular.replace(/\D/g, ''),
+            cep,
+            endereco,
+            numero,
+            complemento,
+            bairro,
+            cidade,
+            estado,
+            foto_url: fotoUrl,
+            updated_at: new Date().toISOString(),
+          },
+        }),
+      });
+      const { error: userError } = await updateRes.json();
+      if (userError) throw new Error(userError);
 
       setUser({ ...user, nome: nome.trim(), celular: celular.replace(/\D/g, ''), cep, endereco, numero, complemento, bairro, cidade, estado, foto_url: fotoUrl } as User);
 

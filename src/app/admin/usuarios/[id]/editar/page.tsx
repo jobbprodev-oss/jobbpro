@@ -45,12 +45,14 @@ export default function AdminEditarUsuarioPage() {
   const fetchUser = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      if (error) throw error;
+      const res = await fetch('/api/users/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getById', userId }),
+      });
+      const { data, error } = await res.json();
+      if (error) throw new Error(error);
+      if (!data) throw new Error('Usuário não encontrado');
       setForm({
         nome: data.nome || '',
         email: data.email || '',

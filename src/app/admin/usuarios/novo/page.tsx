@@ -90,7 +90,11 @@ export default function AdminNovoUsuarioPage() {
         const { error: upErr } = await supabase.storage.from('documentos').upload(fileName, docFile, { upsert: true });
         if (!upErr) {
           const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(fileName);
-          await supabase.from('users').update({ foto_documento_url: urlData.publicUrl }).eq('id', data.user.id);
+          await fetch('/api/users/query', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'update', userId: data.user.id, record: { foto_documento_url: urlData.publicUrl } }),
+          });
         }
       }
 

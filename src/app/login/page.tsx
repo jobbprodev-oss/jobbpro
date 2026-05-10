@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Lock, ArrowRight, Briefcase, Loader2, Eye, EyeOff } from 'lucide-react';
@@ -13,6 +13,24 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Verificar se já está logado ao carregar a página
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetch('/api/auth/check-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: session.user.id, email: session.user.email }),
+        }).then(r => r.json()).then(data => {
+          if (data.tipo) {
+            const destino = data.tipo === 'admin' ? '/admin' : `/dashboard/${data.tipo}`;
+            window.location.href = destino;
+          }
+        }).catch(() => {});
+      }
+    });
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

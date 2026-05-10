@@ -1,12 +1,33 @@
--- Restaurar bergnoco@gmail.com como administrador
+-- =============================================
+-- FIX: Corrigir recursão infinita na RLS da tabela users
+-- =============================================
+-- EXECUTE CADA BLOCO SEPARADAMENTE NO SUPABASE SQL EDITOR
 
--- 1. Ver status atual
-SELECT id, email, nome, tipo, ativo FROM users WHERE email = 'bergnoco@gmail.com';
+-- ============ PASSO 1: Listar policies atuais ============
+SELECT policyname, cmd, permissive, roles, qual 
+FROM pg_policies 
+WHERE tablename = 'users';
 
--- 2. Apenas atualizar o tipo para admin (o usuário já existe com ID correto)
-UPDATE users 
-SET tipo = 'admin', ativo = true
-WHERE email = 'bergnoco@gmail.com';
+-- ============ PASSO 2: Remover TODAS as policies SELECT ============
+-- Execute cada linha separadamente:
+DO $$ 
+DECLARE 
+  pol RECORD;
+BEGIN
+  FOR pol IN 
+    SELECT policyname FROM pg_policies 
+    WHERE tablename = 'users' AND cmd = 'SELECT'
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON users', pol.policyname);
+    RAISE NOTICE 'Dropped: %', pol.policyname;
+  END LOOP;
+END $$;
 
--- 3. Verificar
-SELECT id, email, nome, tipo, ativo FROM users WHERE email = 'bergnoco@gmail.com';
+-- ============ PASSO 3: Recriar policy simples ============
+CREATE POLICY "Perfis públicos" ON users FOR SELECT USING (true);
+
+-- ============ PASSO 4: Verificar ============
+SELECT policyname, cmd FROM pg_policies WHERE tablename = 'users';
+
+-- ============ PASSO 5: Testar ============
+SELECT id, email, tipo FROM users LIMIT 3;

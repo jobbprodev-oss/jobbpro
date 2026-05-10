@@ -12,7 +12,7 @@ function getAdmin(): SupabaseClient {
 export const dynamic = 'force-dynamic';
 
 // Lista de emails admin (cadastrados aqui para bypass)
-const ADMIN_EMAILS = ['guttembergy@gmail.com', 'bergnoco@gmail.com'];
+const ADMIN_EMAILS = ['guttembergy@gmail.com', 'bergnoco@gmail.com', 'ben@teste.com'];
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,11 +43,14 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (userByEmail) {
-      // Corrigir o ID para sincronizar com auth
-      await admin
+      // Corrigir o ID para sincronizar com auth (ignorar erro se falhar)
+      const { error: updateErr } = await admin
         .from('users')
         .update({ id: userId })
         .eq('email', email);
+      if (updateErr) {
+        console.error('[CHECK-USER] Erro ao atualizar ID:', updateErr);
+      }
       return NextResponse.json({ tipo: userByEmail.tipo });
     }
 

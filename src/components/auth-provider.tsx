@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import type { User } from '@/lib/types';
 
-const PUBLIC_ROUTES = ['/', '/login', '/register/prestador', '/register/contratante', '/register/tipo'];
+const PUBLIC_ROUTES = ['/', '/login', '/register/prestador', '/register/contratante', '/register/tipo', '/termos', '/privacidade'];
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -19,11 +19,49 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         const { data: { session } } = await supabase.auth.getSession();
 
         if (session?.user) {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
+          // Buscar via API server-side (bypass RLS)
+          let userData: any = null;
+          try {
+            const res = await fetch('/api/users/query', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'getById', userId: session.user.id }),
+            });
+            const result = await res.json();
+            userData = result.data;
+
+            // Fallback: buscar por email
+            if (!userData && session.user.email) {
+              const res2 = await fetch('/api/users/query', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'getByEmail', email: session.user.email }),
+              });
+              const result2 = await res2.json();
+              userData = result2.data;
+            }
+
+            // Se ainda não existe, tentar auto-criar admin
+            if (!userData) {
+              const checkRes = await fetch('/api/auth/check-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: session.user.id, email: session.user.email }),
+              });
+              const checkData = await checkRes.json();
+              if (checkData.tipo) {
+                const res3 = await fetch('/api/users/query', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ action: 'getById', userId: session.user.id }),
+                });
+                const result3 = await res3.json();
+                userData = result3.data;
+              }
+            }
+          } catch (e) {
+            console.error('Auth user query error:', e);
+          }
 
           if (userData) {
             setUser(userData as User);
@@ -43,7 +81,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                 .maybeSingle();
               if (perfil) setContratantePerfil(perfil);
             }
-            // admin não precisa de perfil extra
 
             const { data: notifs } = await supabase
               .from('notificacoes')

@@ -45,16 +45,18 @@ export default function AdminUsuariosPage() {
   const fetchUsuarios = async () => {
     setLoading(true);
     try {
-      // First fetch all users
-      const { data: users, error: usersError } = await supabase
-        .from('users')
-        .select('id, tipo, nome, email, celular, cidade, estado, ativo, created_at')
-        .order('created_at', { ascending: false });
+      // Buscar users via API server-side (bypass RLS)
+      const res = await fetch('/api/users/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'list' }),
+      });
+      const { data: users, error: usersError } = await res.json();
 
-      if (usersError) throw usersError;
+      if (usersError) throw new Error(usersError);
       
       // Then fetch ratings for users with profiles
-      const userIds = (users || []).map(u => u.id);
+      const userIds = (users || []).map((u: any) => u.id);
       if (userIds.length === 0) {
         setUsuarios([]);
         return;
@@ -71,9 +73,9 @@ export default function AdminUsuariosPage() {
         .in('user_id', userIds);
       
       // Process ratings
-      const processedData = (users || []).map(user => {
-        const prestadorRating = prestadorRatings?.find(r => r.user_id === user.id);
-        const contratanteRating = contratanteRatings?.find(r => r.user_id === user.id);
+      const processedData = (users || []).map((user: any) => {
+        const prestadorRating = prestadorRatings?.find((r: any) => r.user_id === user.id);
+        const contratanteRating = contratanteRatings?.find((r: any) => r.user_id === user.id);
         const rating = prestadorRating || contratanteRating;
         
         return {
@@ -93,11 +95,13 @@ export default function AdminUsuariosPage() {
 
   const toggleAtivo = async (userId: string, ativo: boolean) => {
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ ativo: !ativo })
-        .eq('id', userId);
-      if (error) throw error;
+      const res = await fetch('/api/users/query', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update', userId, record: { ativo: !ativo } }),
+      });
+      const { error } = await res.json();
+      if (error) throw new Error(error);
       setUsuarios((prev) => prev.map((u) => u.id === userId ? { ...u, ativo: !ativo } : u));
       toast.success(ativo ? 'Usuário desativado' : 'Usuário ativado');
     } catch (err: any) {

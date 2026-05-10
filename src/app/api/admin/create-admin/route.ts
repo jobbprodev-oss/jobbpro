@@ -11,11 +11,13 @@ export async function POST(request: NextRequest) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const { email, password } = await request.json();
+    const { email, password, nome } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Email e senha obrigatórios' }, { status: 400 });
     }
+
+    const adminNome = nome || 'Admin';
 
     // 1. Criar usuário no auth do Supabase
     const { data: authData, error: authError } = await admin.auth.admin.createUser({
@@ -34,10 +36,10 @@ export async function POST(request: NextRequest) {
           const { error: upsertError } = await admin.from('users').upsert({
             id: existingUser.id,
             email,
-            nome: 'Admin',
+            nome: adminNome,
             tipo: 'admin',
-            cpf_cnpj: '00000000000',
-            celular: '00000000000',
+            cpf_cnpj: `admin_${existingUser.id.substring(0, 8)}`,
+            celular: `admin_${existingUser.id.substring(0, 8)}`,
             cidade: 'Admin',
             estado: 'SP',
             ativo: true,
@@ -66,10 +68,10 @@ export async function POST(request: NextRequest) {
     const { error: userError } = await admin.from('users').upsert({
       id: authData.user.id,
       email,
-      nome: 'Admin',
+      nome: adminNome,
       tipo: 'admin',
-      cpf_cnpj: '00000000000',
-      celular: '00000000000',
+      cpf_cnpj: `admin_${authData.user.id.substring(0, 8)}`,
+      celular: `admin_${authData.user.id.substring(0, 8)}`,
       cidade: 'Admin',
       estado: 'SP',
       ativo: true,

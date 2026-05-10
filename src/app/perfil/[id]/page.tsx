@@ -25,12 +25,13 @@ export default function PerfilPublicoPage() {
   const fetchPerfil = async () => {
     setLoading(true);
     try {
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-      if (error) throw error;
+      const res = await fetch('/api/users/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getById', userId }),
+      });
+      const { data: userData, error } = await res.json();
+      if (error) throw new Error(error);
       if (!userData) return;
       setUsuario(userData as User);
 

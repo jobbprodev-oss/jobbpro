@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import AuthProvider from '@/components/auth-provider';
-import { Loader2, Users, Briefcase, ClipboardList, Star, Shield, LogOut, TrendingUp, AlertTriangle, CreditCard, Tag, Bell, FileText } from 'lucide-react';
+import { Loader2, Users, Briefcase, ClipboardList, Star, Shield, LogOut, TrendingUp, AlertTriangle, CreditCard, Tag, Bell, FileText, UserPlus } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface Stats {
   totalUsers: number;
@@ -25,22 +26,73 @@ export default function AdminDashboardPage() {
   const { user, notificacoes, loading: authLoading } = useAppStore();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
+  const [newAdminName, setNewAdminName] = useState('');
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [creatingAdmin, setCreatingAdmin] = useState(false);
+  const [adminUsers, setAdminUsers] = useState<{id: string; nome: string; email: string; created_at: string}[]>([]);
 
   useEffect(() => {
-    if (!authLoading && user) {
-      if (user.tipo !== 'admin') {
+    const checkAccess = async () => {
+      // Esperar auth carregar
+      if (authLoading) return;
+
+      // Se o user já está no store como admin, OK
+      if (user && user.tipo === 'admin') {
+        setAuthorized(true);
+        fetchStats();
+        return;
+      }
+
+      // Se user existe mas não é admin, redirecionar
+      if (user && user.tipo !== 'admin') {
         router.push(`/dashboard/${user.tipo}`);
         return;
       }
-      fetchStats();
-    }
+
+      // User é null - verificar se tem sessão ativa antes de redirecionar
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+
+      // Tem sessão mas user não carregou - tentar via API
+      try {
+        const res = await fetch('/api/auth/check-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: session.user.id, email: session.user.email }),
+        });
+        const data = await res.json();
+        if (data.tipo === 'admin') {
+          setAuthorized(true);
+          fetchStats();
+          return;
+        }
+      } catch (e) {
+        console.error('[ADMIN] check-user error:', e);
+      }
+
+      router.push('/login');
+    };
+
+    checkAccess();
   }, [user, authLoading]);
 
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const [usersRes, vagasRes, vagasAtivasRes, matchesRes, matchesPendRes, matchesConcRes, avalsRes] = await Promise.all([
-        supabase.from('users').select('tipo', { count: 'exact', head: true }),
+      // Users stats via server-side API (bypass RLS)
+      const usersRes = await fetch('/api/users/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'stats' }),
+      });
+      const userStats = await usersRes.json();
+
+      const [vagasRes, vagasAtivasRes, matchesRes, matchesPendRes, matchesConcRes, avalsRes] = await Promise.all([
         supabase.from('vagas').select('id', { count: 'exact', head: true }),
         supabase.from('vagas').select('id', { count: 'exact', head: true }).eq('ativa', true),
         supabase.from('matches').select('id', { count: 'exact', head: true }),
@@ -49,13 +101,10 @@ export default function AdminDashboardPage() {
         supabase.from('avaliacoes').select('id', { count: 'exact', head: true }),
       ]);
 
-      const { count: prestCount } = await supabase.from('users').select('id', { count: 'exact', head: true }).eq('tipo', 'prestador');
-      const { count: contCount } = await supabase.from('users').select('id', { count: 'exact', head: true }).eq('tipo', 'contratante');
-
       setStats({
-        totalUsers: (usersRes.count || 0),
-        totalPrestadores: prestCount || 0,
-        totalContratantes: contCount || 0,
+        totalUsers: userStats.totalUsers || 0,
+        totalPrestadores: userStats.prestadores || 0,
+        totalContratantes: userStats.contratantes || 0,
         totalVagas: vagasRes.count || 0,
         vagasAtivas: vagasAtivasRes.count || 0,
         totalMatches: matchesRes.count || 0,
@@ -70,6 +119,38 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleCreateAdmin = async () => {
+    if (!newAdminEmail || newAdminPassword.length < 6) return;
+    setCreatingAdmin(true);
+    try {
+      const res = await fetch('/api/admin/create-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newAdminEmail, password: newAdminPassword, nome: newAdminName || 'Admin' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || 'Admin criado com sucesso!');
+        setNewAdminName('');
+        setNewAdminEmail('');
+        setNewAdminPassword('');
+        // Recarregar lista de admins
+        const { data: admins } = await supabase
+          .from('users')
+          .select('id, nome, email, created_at')
+          .eq('tipo', 'admin')
+          .order('created_at', { ascending: true });
+        if (admins) setAdminUsers(admins);
+      } else {
+        toast.error(data.error || 'Erro ao criar admin');
+      }
+    } catch (err: any) {
+      toast.error('Erro ao criar admin');
+    } finally {
+      setCreatingAdmin(false);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     useAppStore.getState().reset();
@@ -78,9 +159,16 @@ export default function AdminDashboardPage() {
 
   return (
     <AuthProvider>
-      {(authLoading || loading) ? (
+      {(authLoading || (loading && !stats)) ? (
         <div className="min-h-screen flex items-center justify-center bg-gray-900">
           <Loader2 className="w-8 h-8 animate-spin text-brand-400" />
+        </div>
+      ) : !authorized ? (
+        <div className="min-h-screen flex items-center justify-center bg-gray-900">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin text-brand-400 mx-auto mb-4" />
+            <p className="text-gray-400 text-sm">Verificando acesso...</p>
+          </div>
         </div>
       ) : (
         <div className="min-h-screen bg-gray-900 text-white">
@@ -162,6 +250,11 @@ export default function AdminDashboardPage() {
                 <FileText className="w-8 h-8 text-red-400 mb-3 group-hover:scale-110 transition-transform" />
                 <h4 className="font-semibold text-white">Termos e Políticas</h4>
                 <p className="text-sm text-gray-400 mt-1">Configurar termos de uso e privacidade</p>
+              </Link>
+              <Link href="/admin/admins" className="bg-gray-800 border border-gray-700 rounded-xl p-5 hover:border-brand-500 transition-colors group">
+                <Shield className="w-8 h-8 text-pink-400 mb-3 group-hover:scale-110 transition-transform" />
+                <h4 className="font-semibold text-white">Administradores</h4>
+                <p className="text-sm text-gray-400 mt-1">Gerenciar acessos administrativos</p>
               </Link>
             </div>
           </div>
