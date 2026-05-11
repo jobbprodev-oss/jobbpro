@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import Header from '@/components/header';
@@ -15,6 +16,7 @@ const iconMap: Record<string, React.ReactNode> = {
 };
 
 export default function NotificacoesPage() {
+  const router = useRouter();
   const { user, notificacoes, setNotificacoes, loading } = useAppStore();
 
   const marcarTodasLidas = async () => {
@@ -81,7 +83,10 @@ export default function NotificacoesPage() {
                 {notificacoes.map((n) => (
                   <button
                     key={n.id}
-                    onClick={() => !n.lida && marcarLida(n.id)}
+                    onClick={async () => {
+                      if (!n.lida) await marcarLida(n.id);
+                      if (n.link) router.push(n.link);
+                    }}
                     className={`w-full text-left card p-4 flex gap-3 items-start transition-colors ${
                       !n.lida ? 'bg-brand-50/50 border-brand-100' : ''
                     }`}
