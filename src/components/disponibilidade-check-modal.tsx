@@ -51,7 +51,7 @@ export default function DisponibilidadeCheckModal({
         return;
       }
 
-      // Buscar disponibilidades na data da vaga
+      // Buscar disponibilidade do prestador na data da vaga
       const { data: dispData, error } = await supabase
         .from('disponibilidades')
         .select('*')
@@ -62,23 +62,7 @@ export default function DisponibilidadeCheckModal({
       if (error) throw error;
 
       setDisponibilidades(dispData || []);
-
-      // Verificar se há disponibilidade compatível
-      const vagaInicio = new Date(`${vagaData}T${vagaHorarioInicio}`);
-      const vagaFim = new Date(`${vagaData}T${vagaHorarioFim}`);
-
-      const temDisponibilidadeCompativel = dispData?.some(disp => {
-        const dispInicio = new Date(`${disp.data}T${disp.horario_inicio}`);
-        const dispFim = new Date(`${disp.data}T${disp.horario_fim}`);
-        
-        // Verifica se o horário da vaga está DENTRO do horário de disponibilidade
-        return (
-          vagaInicio >= dispInicio && 
-          vagaFim <= dispFim
-        );
-      });
-
-      setTemDisponibilidade(temDisponibilidadeCompativel && (dispData?.length || 0) > 0);
+      setTemDisponibilidade((dispData?.length || 0) > 0);
     } catch (err: any) {
       toast.error(err.message || 'Erro ao verificar disponibilidade');
     } finally {
@@ -116,22 +100,11 @@ export default function DisponibilidadeCheckModal({
               <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                 <div>
-                  <p className="font-medium text-emerald-900">Você está disponível!</p>
-                  <p className="text-sm text-emerald-700">Encontramos disponibilidade compatível com esta vaga.</p>
+                  <p className="font-medium text-emerald-900">Você tem disponibilidade!</p>
+                  <p className="text-sm text-emerald-700">Você possui disponibilidade cadastrada para este dia. Pode demonstrar interesse nesta vaga.</p>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700">Suas disponibilidades neste dia:</p>
-                {disponibilidades.map((disp) => (
-                  <div key={disp.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                    <Clock className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-700">
-                      {disp.horario_inicio} - {disp.horario_fim}
-                    </span>
-                  </div>
-                ))}
-              </div>
 
               <button
                 onClick={() => {
@@ -150,27 +123,10 @@ export default function DisponibilidadeCheckModal({
                 <div>
                   <p className="font-medium text-amber-900">Sem disponibilidade</p>
                   <p className="text-sm text-amber-700">
-                    {disponibilidades.length === 0 
-                      ? 'Você não cadastrou nenhuma disponibilidade para este dia.'
-                      : 'Nenhuma de suas disponibilidades é compatível com o horário desta vaga.'
-                    }
+                    Você não possui disponibilidade cadastrada para o dia {new Date(vagaData + 'T00:00:00').toLocaleDateString('pt-BR')}.
                   </p>
                 </div>
               </div>
-
-              {disponibilidades.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-700">Suas disponibilidades neste dia:</p>
-                  {disponibilidades.map((disp) => (
-                    <div key={disp.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-700">
-                        {disp.horario_inicio} - {disp.horario_fim}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
 
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <Calendar className="w-8 h-8 text-gray-400 mx-auto mb-2" />

@@ -21,8 +21,6 @@ export default function DisponibilidadePage() {
   const [showPagamentoModal, setShowPagamentoModal] = useState(false);
 
   const [novaData, setNovaData] = useState('');
-  const [novaInicio, setNovaInicio] = useState('08:00');
-  const [novaFim, setNovaFim] = useState('18:00');
 
   useEffect(() => {
     if (prestadorPerfil) fetchDisponibilidades();
@@ -50,10 +48,6 @@ export default function DisponibilidadePage() {
   const adicionarDisponibilidade = () => {
     if (!novaData) {
       toast.error('Selecione uma data');
-      return;
-    }
-    if (novaInicio >= novaFim) {
-      toast.error('Horário de início deve ser anterior ao fim');
       return;
     }
     setShowPagamentoModal(true);
@@ -106,26 +100,6 @@ export default function DisponibilidadePage() {
                     className="input-field"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Início</label>
-                    <input
-                      type="time"
-                      value={novaInicio}
-                      onChange={(e) => setNovaInicio(e.target.value)}
-                      className="input-field"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Fim</label>
-                    <input
-                      type="time"
-                      value={novaFim}
-                      onChange={(e) => setNovaFim(e.target.value)}
-                      className="input-field"
-                    />
-                  </div>
-                </div>
                 <div className="flex gap-2">
                   <button
                     onClick={adicionarDisponibilidade}
@@ -165,10 +139,6 @@ export default function DisponibilidadePage() {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900 text-sm">{formatDate(d.data)}</p>
-                        <div className="flex items-center gap-1 text-xs text-gray-500">
-                          <Clock className="w-3 h-3" />
-                          {formatTime(d.horario_inicio)} - {formatTime(d.horario_fim)}
-                        </div>
                       </div>
                     </div>
                     <button
@@ -189,12 +159,10 @@ export default function DisponibilidadePage() {
             isOpen={showPagamentoModal}
             onClose={() => setShowPagamentoModal(false)}
             data={novaData}
-            horario_inicio={novaInicio}
-            horario_fim={novaFim}
+            horario_inicio="00:00"
+            horario_fim="23:59"
             onSuccess={() => {
               setNovaData('');
-              setNovaInicio('08:00');
-              setNovaFim('18:00');
               setShowForm(false);
               fetchDisponibilidades();
             }}
