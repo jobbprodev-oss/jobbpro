@@ -51,12 +51,13 @@ export default function DisponibilidadeCheckModal({
         return;
       }
 
-      // Buscar disponibilidade do prestador na data da vaga
+      // Buscar disponibilidade do prestador no dia atual
+      const hoje = new Date().toISOString().split('T')[0];
       const { data: dispData, error } = await supabase
         .from('disponibilidades')
         .select('*')
         .eq('prestador_id', perfil.id)
-        .eq('data', vagaData)
+        .eq('data', hoje)
         .eq('disponivel', true);
 
       if (error) throw error;
@@ -101,7 +102,7 @@ export default function DisponibilidadeCheckModal({
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                 <div>
                   <p className="font-medium text-emerald-900">Você tem disponibilidade!</p>
-                  <p className="text-sm text-emerald-700">Você possui disponibilidade cadastrada para este dia. Pode demonstrar interesse nesta vaga.</p>
+                  <p className="text-sm text-emerald-700">Você está disponível hoje. Pode demonstrar interesse nesta vaga.</p>
                 </div>
               </div>
 
@@ -123,7 +124,7 @@ export default function DisponibilidadeCheckModal({
                 <div>
                   <p className="font-medium text-amber-900">Sem disponibilidade</p>
                   <p className="text-sm text-amber-700">
-                    Você não possui disponibilidade cadastrada para o dia {new Date(vagaData + 'T00:00:00').toLocaleDateString('pt-BR')}.
+                    Você não possui disponibilidade cadastrada para hoje.
                   </p>
                 </div>
               </div>
@@ -131,7 +132,7 @@ export default function DisponibilidadeCheckModal({
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <Calendar className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                 <p className="text-sm text-gray-600">
-                  Para se interessar em vagas, cadastre sua disponibilidade no painel do prestador.
+                  Para se interessar em vagas, cadastre o dia de hoje como disponível no painel do prestador.
                 </p>
               </div>
 
