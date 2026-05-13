@@ -92,10 +92,10 @@ export default function VagaDetailPage() {
             </div>
             <span className={`badge ${
               !vaga.ativa ? 'bg-gray-100 text-gray-500' :
-              new Date(vaga.data + 'T23:59:59') < new Date() ? 'bg-amber-100 text-amber-700' :
+              new Date(vaga.data + 'T23:59:59') < new Date() ? 'bg-red-100 text-red-700' :
               'bg-emerald-100 text-emerald-700'
             }`}>
-              {!vaga.ativa ? 'Inativa' : new Date(vaga.data + 'T23:59:59') < new Date() ? 'Pendente' : 'Ativa'}
+              {!vaga.ativa ? 'Inativa' : new Date(vaga.data + 'T23:59:59') < new Date() ? 'Expirada' : 'Ativa'}
             </span>
           </div>
 
