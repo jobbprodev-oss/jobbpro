@@ -28,6 +28,21 @@ export default function VagaDetailPage() {
     if (vagaId) fetchVaga();
   }, [vagaId]);
 
+  useEffect(() => {
+    if (vagaId && prestadorPerfil) checkInteresseExistente();
+  }, [vagaId, prestadorPerfil]);
+
+  const checkInteresseExistente = async () => {
+    if (!prestadorPerfil) return;
+    const { data } = await supabase
+      .from('matches')
+      .select('id')
+      .eq('vaga_id', vagaId)
+      .eq('prestador_id', prestadorPerfil.id)
+      .maybeSingle();
+    if (data) setJaEnviou(true);
+  };
+
   const fetchVaga = async () => {
     setLoading(true);
     try {
@@ -169,22 +184,25 @@ export default function VagaDetailPage() {
           const funcoesPrestador = [prestadorPerfil.funcao_principal, prestadorPerfil.funcao_2, prestadorPerfil.funcao_3].filter(Boolean);
           const funcaoCompativel = funcoesPrestador.includes(vaga.funcao_principal);
           return funcaoCompativel ? (
+          jaEnviou ? (
+            <div className="w-full mt-4 flex items-center justify-center gap-2 btn-secondary text-emerald-600 cursor-default">
+              <Heart className="w-5 h-5 fill-emerald-600" />
+              Interesse Enviado
+            </div>
+          ) : (
           <button
             onClick={() => setShowDisponibilidadeModal(true)}
-            disabled={enviando || jaEnviou}
-            className={`w-full mt-4 flex items-center justify-center gap-2 ${
-              jaEnviou ? 'btn-secondary text-emerald-600' : 'btn-primary'
-            }`}
+            disabled={enviando}
+            className="w-full mt-4 flex items-center justify-center gap-2 btn-primary"
           >
             {enviando ? (
               <Loader2 className="w-5 h-5 animate-spin" />
-            ) : jaEnviou ? (
-              <Heart className="w-5 h-5 fill-emerald-600" />
             ) : (
               <Heart className="w-5 h-5" />
             )}
-            {enviando ? 'Enviando...' : jaEnviou ? 'Interesse Enviado' : 'Tenho Interesse nesta Vaga'}
+            {enviando ? 'Enviando...' : 'Tenho Interesse nesta Vaga'}
           </button>
+          )
           ) : (
             <div className="w-full mt-4 text-center py-3 px-4 bg-gray-100 rounded-xl text-sm text-gray-500">
               Você não possui a função cadastrada no seu perfil

@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         .select('id')
         .eq('vaga_id', vaga_id)
         .eq('prestador_id', prestador_id)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         return NextResponse.json({ error: 'Match já existe' }, { status: 409 });
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
           'Novo interesse',
           `${nomePrestador} demonstrou interesse na vaga "${vaga.titulo}"`,
           'match',
-          `/vagas/${vaga_id}`
+          `/dashboard/contratante/matches`
         );
       }
 
