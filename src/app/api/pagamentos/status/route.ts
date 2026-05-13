@@ -9,7 +9,7 @@ function getAdmin(): SupabaseClient {
   return _client;
 }
 
-const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://api.asaas.com/v3';
+const ASAAS_API_URL = 'https://sandbox.asaas.com/api/v3';
 function getAsaasKey() {
   const rawKey = process.env.ASAAS_API_KEY || '';
   if (!rawKey) {
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('id', pagamentoId)
       .eq('user_id', authUser.id)
-      .single();
+      .maybeSingle();
     
     if (pagamentoLocal) {
       pagamento = pagamentoLocal;
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
         .select('*')
         .eq('asaas_payment_id', pagamentoId)
         .eq('user_id', authUser.id)
-        .single();
+        .maybeSingle();
       
       if (!pagamentoAsaas) {
         // Se não encontrou em nenhum, verifica direto no Asaas (para pagamentos novos)

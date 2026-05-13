@@ -9,7 +9,7 @@ function getAdmin(): SupabaseClient {
   return _client;
 }
 
-const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://api.asaas.com/v3';
+const ASAAS_API_URL = 'https://sandbox.asaas.com/api/v3';
 function getAsaasKey() {
   const rawKey = process.env.ASAAS_API_KEY || '';
   if (!rawKey) {
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', authUser.id)
       .not('asaas_customer_id', 'is', null)
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (pagamentoExistente?.asaas_customer_id) {
       asaasCustomerId = pagamentoExistente.asaas_customer_id;

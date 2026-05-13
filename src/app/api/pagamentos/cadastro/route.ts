@@ -17,7 +17,7 @@ function getAsaasKey() {
   return rawKey.startsWith('$') ? rawKey : `$${rawKey}`;
 }
 
-const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://api.asaas.com/v3';
+const ASAAS_API_URL = 'https://sandbox.asaas.com/api/v3';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,8 +110,9 @@ export async function POST(request: NextRequest) {
       cache: 'no-store',
     });
     const pixData = await pixRes.json();
+    console.log('[CADASTRO_PIX] QR Code response:', pixRes.status, JSON.stringify(pixData));
     if (!pixRes.ok) {
-      throw new Error('Erro ao gerar QR Code PIX');
+      throw new Error(pixData.errors?.[0]?.description || 'Erro ao gerar QR Code PIX');
     }
 
     return NextResponse.json({
