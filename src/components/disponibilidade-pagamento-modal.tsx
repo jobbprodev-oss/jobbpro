@@ -181,7 +181,7 @@ export default function DisponibilidadePagamentoModal({
           <div className="text-center">
             <p className="text-sm text-gray-500">Data e horário</p>
             <p className="font-medium text-gray-900">
-              {new Date(data).toLocaleDateString('pt-BR')} • {horario_inicio} - {horario_fim}
+              {new Date(data + 'T00:00:00').toLocaleDateString('pt-BR')} • {horario_inicio} - {horario_fim}
             </p>
           </div>
 
