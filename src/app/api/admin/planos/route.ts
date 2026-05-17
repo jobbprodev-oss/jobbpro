@@ -48,17 +48,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Campos obrigatórios ausentes' }, { status: 400 });
     }
 
-    const { data, error } = await getAdmin().from('planos').insert({
+    const insertPayload: Record<string, unknown> = {
       nome,
       descricao: descricao || null,
       valor,
       duracao_dias: duracao_dias || 30,
-      duracao_horas: duracao_horas ?? null,
       tipo_usuario,
       categoria: categoria || 'servico',
       ativo: true,
       recursos: recursos || [],
-    }).select().single();
+    };
+    if (duracao_horas !== undefined && duracao_horas !== null && duracao_horas !== '') {
+      insertPayload.duracao_horas = Number(duracao_horas);
+    }
+
+    const { data, error } = await getAdmin().from('planos').insert(insertPayload).select().single();
 
     if (error) throw error;
     return NextResponse.json({ plano: data });
