@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import Header from '@/components/header';
+import BottomNav from '@/components/bottom-nav';
 import AuthProvider from '@/components/auth-provider';
 import { Loader2, CheckCircle2, PlusCircle } from 'lucide-react';
 import { FUNCOES_DISPONIVEIS, ESTADOS_BR } from '@/lib/types';
@@ -226,6 +227,7 @@ export default function NovaVagaPage() {
           }}
         />
       </div>
+      <BottomNav />
     </div>
     </AuthProvider>
   );

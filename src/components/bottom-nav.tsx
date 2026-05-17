@@ -10,9 +10,9 @@ export default function BottomNav() {
   const pathname = usePathname();
   const { user } = useAppStore();
 
-  if (!user) return null;
+  const isPrestador = user?.tipo === 'prestador';
 
-  const isPrestador = user.tipo === 'prestador';
+  if (!user) return null;
 
   const navItems = isPrestador
     ? [

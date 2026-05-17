@@ -40,14 +40,14 @@ export default function DashboardContratantePage() {
 
   return (
     <AuthProvider>
-      {authLoading ? (
-        <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
-        </div>
-      ) : (
-        <div className="min-h-screen bg-gray-50">
-          <Header title="Início" />
+      <div className="min-h-screen bg-gray-50">
+        <Header title="Início" />
 
+        {authLoading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
+          </div>
+        ) : (
           <div className="page-container">
             {/* Welcome */}
             <div className="card p-4 mb-6">
@@ -117,10 +117,10 @@ export default function DashboardContratantePage() {
               </div>
             )}
           </div>
+        )}
 
-          <BottomNav />
-        </div>
-      )}
+        <BottomNav />
+      </div>
     </AuthProvider>
   );
 }
