@@ -110,6 +110,7 @@ export default function ContratanteMatchesPage() {
                   const prestador = (match as any).prestador_perfil;
                   const prestadorUser = prestador?.users;
                   const vaga = (match as any).vagas;
+                  const vagaExpirada = vaga?.data ? new Date(vaga.data + 'T23:59:59') < new Date() : false;
 
                   return (
                     <div key={match.id} className="card p-4">
@@ -118,9 +119,13 @@ export default function ContratanteMatchesPage() {
                           <h3 className="font-semibold text-gray-900">{vaga?.titulo || 'Vaga'}</h3>
                           <p className="text-sm text-brand-600">{vaga?.funcao_principal}</p>
                         </div>
-                        <span className={`badge text-xs ${getMatchStatusColor(match.status)}`}>
-                          {getMatchStatusLabel(match.status)}
-                        </span>
+                        {vagaExpirada && match.status === 'pendente' ? (
+                          <span className="badge text-xs bg-red-100 text-red-700">Expirada</span>
+                        ) : (
+                          <span className={`badge text-xs ${getMatchStatusColor(match.status)}`}>
+                            {getMatchStatusLabel(match.status)}
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-3 mt-3 p-3 bg-gray-50 rounded-xl">
@@ -155,7 +160,7 @@ export default function ContratanteMatchesPage() {
                         </span>
                       </div>
 
-                      {match.status === 'pendente' && (
+                      {match.status === 'pendente' && !vagaExpirada && (
                         <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
                           <button
                             onClick={() => responderMatch(match.vaga_id, match.prestador_id, 'aceitar')}
@@ -170,6 +175,12 @@ export default function ContratanteMatchesPage() {
                             <XCircle className="w-4 h-4" /> Recusar
                           </button>
                         </div>
+                      )}
+
+                      {match.status === 'pendente' && vagaExpirada && (
+                        <p className="text-xs text-red-400 mt-3 pt-3 border-t border-gray-100 text-center">
+                          Vaga expirada — prazo encerrado
+                        </p>
                       )}
 
                       {match.status === 'aceito' && (

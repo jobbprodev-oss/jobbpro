@@ -105,20 +105,27 @@ export default function PrestadorMatchesPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {matchesFiltrados.map((match) => (
+                {matchesFiltrados.map((match) => {
+                  const vaga = (match as any).vagas;
+                  const vagaExpirada = vaga?.data ? new Date(vaga.data + 'T23:59:59') < new Date() : false;
+                  return (
                   <div key={match.id} className="card p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900">
-                          {(match as any).vagas?.titulo || 'Vaga'}
+                          {vaga?.titulo || 'Vaga'}
                         </h3>
                         <p className="text-sm text-brand-600">
-                          {(match as any).vagas?.funcao_principal}
+                          {vaga?.funcao_principal}
                         </p>
                       </div>
-                      <span className={`badge text-xs ${getMatchStatusColor(match.status)}`}>
-                        {getMatchStatusLabel(match.status)}
-                      </span>
+                      {vagaExpirada && match.status === 'pendente' ? (
+                        <span className="badge text-xs bg-red-100 text-red-700">Expirada</span>
+                      ) : (
+                        <span className={`badge text-xs ${getMatchStatusColor(match.status)}`}>
+                          {getMatchStatusLabel(match.status)}
+                        </span>
+                      )}
                     </div>
 
                     <div className="space-y-1 text-sm text-gray-500 mt-2">
@@ -146,9 +153,15 @@ export default function PrestadorMatchesPage() {
                       )}
                     </div>
 
-                    {match.status === 'pendente' && (
+                    {match.status === 'pendente' && !vagaExpirada && (
                       <p className="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-100 text-center">
                         Aguardando resposta do contratante
+                      </p>
+                    )}
+
+                    {match.status === 'pendente' && vagaExpirada && (
+                      <p className="text-xs text-red-400 mt-3 pt-3 border-t border-gray-100 text-center">
+                        Vaga expirada — prazo encerrado
                       </p>
                     )}
 
@@ -204,7 +217,8 @@ export default function PrestadorMatchesPage() {
                       </Link>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
