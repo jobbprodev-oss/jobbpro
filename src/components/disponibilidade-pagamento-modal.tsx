@@ -139,7 +139,6 @@ export default function DisponibilidadePagamentoModal({
       const { data: userData, error: authError } = await supabase.auth.getUser();
       if (authError || !userData.user) throw new Error('Usuário não autenticado');
 
-      // Buscar perfil do prestador
       const { data: perfil, error: perfilError } = await supabase
         .from('prestador_perfil')
         .select('id')
@@ -148,13 +147,18 @@ export default function DisponibilidadePagamentoModal({
 
       if (perfilError || !perfil) throw new Error('Perfil não encontrado');
 
-      // Inserir disponibilidade
+      const duracaoHoras = planoSelecionado?.duracao_horas ?? 24;
+      const agora = new Date();
+      const expiresAt = new Date(agora.getTime() + duracaoHoras * 60 * 60 * 1000).toISOString();
+
       const { error: insertError } = await supabase.from('disponibilidades').insert({
         prestador_id: perfil.id,
         data,
         horario_inicio,
         horario_fim,
         disponivel: true,
+        plano_id: planoSelecionado?.id ?? null,
+        expires_at: expiresAt,
       });
 
       if (insertError) throw insertError;
@@ -202,6 +206,9 @@ export default function DisponibilidadePagamentoModal({
                         <div>
                           <p className="font-medium text-gray-900 text-sm">{plano.nome}</p>
                           <p className="text-xs text-gray-500">{plano.descricao}</p>
+                          {plano.duracao_horas && (
+                            <p className="text-xs text-brand-600 font-medium mt-0.5">Válido por {plano.duracao_horas}h</p>
+                          )}
                         </div>
                         <p className="text-lg font-bold text-brand-600">R$ {plano.valor.toFixed(2)}</p>
                       </div>

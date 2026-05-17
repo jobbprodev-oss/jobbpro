@@ -16,6 +16,7 @@ const EMPTY_FORM = {
   descricao: '',
   valor: '',
   duracao_dias: '30',
+  duracao_horas: '24',
   tipo_usuario: 'prestador' as string,
   categoria: 'servico' as string,
   recursos: '',
@@ -67,6 +68,7 @@ export default function AdminPlanosPage() {
       descricao: plano.descricao || '',
       valor: String(plano.valor),
       duracao_dias: String(plano.duracao_dias),
+      duracao_horas: String(plano.duracao_horas ?? 24),
       tipo_usuario: plano.tipo_usuario,
       categoria: plano.categoria || 'servico',
       recursos: (plano.recursos || []).join(', '),
@@ -89,6 +91,7 @@ export default function AdminPlanosPage() {
         descricao: form.descricao || null,
         valor: parseFloat(form.valor),
         duracao_dias: parseInt(form.duracao_dias),
+        duracao_horas: form.categoria === 'servico' ? parseInt(form.duracao_horas) : null,
         tipo_usuario: form.tipo_usuario,
         categoria: form.categoria,
         recursos: form.recursos ? form.recursos.split(',').map((r) => r.trim()).filter(Boolean) : [],
@@ -189,11 +192,20 @@ export default function AdminPlanosPage() {
                         <input type="number" step="0.01" min="0" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })}
                           className="w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500" />
                       </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-300 mb-1 block">Duração (dias) *</label>
-                        <input type="number" min="1" value={form.duracao_dias} onChange={(e) => setForm({ ...form, duracao_dias: e.target.value })}
-                          className="w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500" />
-                      </div>
+                      {form.categoria === 'servico' ? (
+                        <div>
+                          <label className="text-sm font-medium text-gray-300 mb-1 block">Validade (horas) *</label>
+                          <input type="number" min="1" value={form.duracao_horas} onChange={(e) => setForm({ ...form, duracao_horas: e.target.value })}
+                            className="w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500"
+                            placeholder="Ex: 24, 36, 72" />
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="text-sm font-medium text-gray-300 mb-1 block">Duração (dias) *</label>
+                          <input type="number" min="1" value={form.duracao_dias} onChange={(e) => setForm({ ...form, duracao_dias: e.target.value })}
+                            className="w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500" />
+                        </div>
+                      )}
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -271,7 +283,11 @@ export default function AdminPlanosPage() {
                     {plano.descricao && <p className="text-sm text-gray-400 mb-3">{plano.descricao}</p>}
                     <div className="flex items-baseline gap-1 mb-2">
                       <span className="text-2xl font-bold text-brand-400">{formatCurrency(plano.valor)}</span>
-                      <span className="text-xs text-gray-500">/ {plano.duracao_dias} dias</span>
+                      <span className="text-xs text-gray-500">
+                        {(plano.categoria || 'servico') === 'servico' && plano.duracao_horas
+                          ? `/ ${plano.duracao_horas}h`
+                          : `/ ${plano.duracao_dias} dias`}
+                      </span>
                     </div>
                     {plano.recursos && plano.recursos.length > 0 && (
                       <ul className="space-y-1 mt-3 pt-3 border-t border-gray-700">

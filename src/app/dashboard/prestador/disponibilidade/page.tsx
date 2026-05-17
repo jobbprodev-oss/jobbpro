@@ -6,7 +6,7 @@ import { useAppStore } from '@/lib/store';
 import Header from '@/components/header';
 import BottomNav from '@/components/bottom-nav';
 import AuthProvider from '@/components/auth-provider';
-import { Loader2, Plus, Trash2, Calendar, Clock } from 'lucide-react';
+import { Loader2, Plus, Trash2, Calendar, Clock, AlertCircle } from 'lucide-react';
 import DisponibilidadePagamentoModal from '@/components/disponibilidade-pagamento-modal';
 import { formatDate, formatTime } from '@/lib/utils';
 import type { Disponibilidade } from '@/lib/types';
@@ -20,7 +20,8 @@ export default function DisponibilidadePage() {
   const [salvando, setSalvando] = useState(false);
   const [showPagamentoModal, setShowPagamentoModal] = useState(false);
 
-  const [novaData, setNovaData] = useState('');
+  const hoje = new Date().toISOString().split('T')[0];
+  const [novaData, setNovaData] = useState(hoje);
 
   useEffect(() => {
     if (prestadorPerfil) fetchDisponibilidades();
@@ -34,8 +35,7 @@ export default function DisponibilidadePage() {
         .from('disponibilidades')
         .select('*')
         .eq('prestador_id', prestadorPerfil.id)
-        .gte('data', new Date().toISOString().split('T')[0])
-        .order('data', { ascending: true });
+        .order('created_at', { ascending: false });
       if (error) throw error;
       setDisponibilidades(data || []);
     } catch (err) {
@@ -45,11 +45,18 @@ export default function DisponibilidadePage() {
     }
   };
 
+  const isExpirada = (d: Disponibilidade) => {
+    if (d.expires_at) return new Date(d.expires_at) < new Date();
+    return new Date(d.data + 'T23:59:59') < new Date();
+  };
+
+  const formatExpiry = (d: Disponibilidade) => {
+    if (!d.expires_at) return null;
+    const exp = new Date(d.expires_at);
+    return exp.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  };
+
   const adicionarDisponibilidade = () => {
-    if (!novaData) {
-      toast.error('Selecione uma data');
-      return;
-    }
     setShowPagamentoModal(true);
   };
 
@@ -64,21 +71,23 @@ export default function DisponibilidadePage() {
     }
   };
 
-  const hoje = new Date().toISOString().split('T')[0];
-
   return (
     <AuthProvider>
-      {authLoading ? (
-        <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
-        </div>
-      ) : (
-        <div className="min-h-screen bg-gray-50">
-          <Header title="Disponibilidade" />
+      <div className="min-h-screen bg-gray-50">
+        <Header title="Disponibilidade" />
 
+        {authLoading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
+          </div>
+        ) : (
           <div className="page-container">
+            <div className="card p-4 mb-4 bg-brand-50 border border-brand-100">
+              <p className="text-sm text-brand-700">Cadastre sua disponibilidade. O prazo de validade será definido automaticamente conforme o plano selecionado.</p>
+            </div>
+
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-gray-500">{disponibilidades.length} datas cadastradas</p>
+              <p className="text-sm text-gray-500">{disponibilidades.length} disponibilidade(s) cadastrada(s)</p>
               <button
                 onClick={() => setShowForm(!showForm)}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium"
@@ -91,14 +100,14 @@ export default function DisponibilidadePage() {
             {showForm && (
               <div className="card p-4 mb-4 space-y-3 animate-slide-up">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Data *</label>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Data da disponibilidade</label>
                   <input
                     type="date"
                     value={novaData}
-                    min={hoje}
-                    onChange={(e) => setNovaData(e.target.value)}
-                    className="input-field"
+                    readOnly
+                    className="input-field bg-gray-50 text-gray-500 cursor-not-allowed"
                   />
+                  <p className="text-xs text-gray-400 mt-1">A data é sempre a data atual</p>
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -107,7 +116,7 @@ export default function DisponibilidadePage() {
                     className="btn-primary flex-1 text-sm py-2.5 flex items-center justify-center gap-1"
                   >
                     {salvando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                    {salvando ? 'Salvando...' : 'Salvar'}
+                    {salvando ? 'Salvando...' : 'Salvar disponibilidade'}
                   </button>
                   <button
                     onClick={() => setShowForm(false)}
@@ -127,48 +136,58 @@ export default function DisponibilidadePage() {
               <div className="text-center py-12">
                 <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500 font-medium">Nenhuma disponibilidade</p>
-                <p className="text-gray-400 text-sm mt-1">Adicione suas datas disponíveis para receber matches</p>
+                <p className="text-gray-400 text-sm mt-1">Adicione sua disponibilidade para receber matches</p>
               </div>
             ) : (
               <div className="space-y-2">
-                {disponibilidades.map((d) => (
-                  <div key={d.id} className="card p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-brand-50 rounded-xl flex items-center justify-center">
-                        <Calendar className="w-5 h-5 text-brand-600" />
+                {disponibilidades.map((d) => {
+                  const expirada = isExpirada(d);
+                  const expiry = formatExpiry(d);
+                  return (
+                    <div key={d.id} className={`card p-4 flex items-center justify-between ${expirada ? 'opacity-60' : ''}`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${expirada ? 'bg-red-50' : 'bg-brand-50'}`}>
+                          {expirada
+                            ? <AlertCircle className="w-5 h-5 text-red-400" />
+                            : <Calendar className="w-5 h-5 text-brand-600" />}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900 text-sm">{formatDate(d.data)}</p>
+                          {expirada ? (
+                            <p className="text-xs text-red-500 font-medium">Expirada</p>
+                          ) : expiry ? (
+                            <p className="text-xs text-gray-400">Válido até {expiry}</p>
+                          ) : null}
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900 text-sm">{formatDate(d.data)}</p>
-                      </div>
+                      <button
+                        onClick={() => removerDisponibilidade(d.id)}
+                        className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                    <button
-                      onClick={() => removerDisponibilidade(d.id)}
-                      className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
+        )}
 
-          <BottomNav />
+        <BottomNav />
 
-          <DisponibilidadePagamentoModal
-            isOpen={showPagamentoModal}
-            onClose={() => setShowPagamentoModal(false)}
-            data={novaData}
-            horario_inicio="00:00"
-            horario_fim="23:59"
-            onSuccess={() => {
-              setNovaData('');
-              setShowForm(false);
-              fetchDisponibilidades();
-            }}
-          />
-        </div>
-      )}
+        <DisponibilidadePagamentoModal
+          isOpen={showPagamentoModal}
+          onClose={() => setShowPagamentoModal(false)}
+          data={novaData}
+          horario_inicio="00:00"
+          horario_fim="23:59"
+          onSuccess={() => {
+            setShowForm(false);
+            fetchDisponibilidades();
+          }}
+        />
+      </div>
     </AuthProvider>
   );
 }

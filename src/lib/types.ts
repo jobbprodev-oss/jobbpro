@@ -72,6 +72,8 @@ export interface Disponibilidade {
   horario_inicio: string;
   horario_fim: string;
   disponivel: boolean;
+  expires_at?: string;
+  plano_id?: string;
   created_at: string;
 }
 
@@ -191,6 +193,7 @@ export interface Plano {
   descricao?: string;
   valor: number;
   duracao_dias: number;
+  duracao_horas?: number;
   tipo_usuario: UserType;
   categoria: PlanoCategoria;
   ativo: boolean;
