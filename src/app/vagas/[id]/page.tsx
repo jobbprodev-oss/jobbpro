@@ -1,26 +1,26 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { supabase, getAuthToken } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import Header from '@/components/header';
 import AuthProvider from '@/components/auth-provider';
-import PrestadorCard from '@/components/prestador-card';
-import { Loader2, MapPin, Calendar, Clock, Shirt, Users, FileText, Heart } from 'lucide-react';
+import { Loader2, MapPin, Calendar, Clock, Shirt, Users, FileText, Heart, Star, User, CheckCircle } from 'lucide-react';
 import DisponibilidadeCheckModal from '@/components/disponibilidade-check-modal';
-import { formatCurrency, formatDate, formatTime, getVestimentaLabel } from '@/lib/utils';
-import type { Vaga, PrestadorCompativel } from '@/lib/types';
+import { formatCurrency, formatDate, formatTime, getVestimentaLabel, getMatchStatusLabel, getMatchStatusColor } from '@/lib/utils';
+import type { Vaga, Match } from '@/lib/types';
 import toast from 'react-hot-toast';
 
 export default function VagaDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const vagaId = params.id as string;
   const { user, prestadorPerfil } = useAppStore();
   const [enviando, setEnviando] = useState(false);
   const [jaEnviou, setJaEnviou] = useState(false);
   const [vaga, setVaga] = useState<Vaga | null>(null);
-  const [prestadores, setPrestadores] = useState<PrestadorCompativel[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDisponibilidadeModal, setShowDisponibilidadeModal] = useState(false);
 
@@ -55,10 +55,15 @@ export default function VagaDetailPage() {
       setVaga(vagaData);
 
       if (user?.tipo === 'contratante') {
-        const { data: matchData } = await supabase.rpc('buscar_matches_vaga', {
-          vaga_uuid: vagaId,
+        const token = await getAuthToken();
+        const res = await fetch(`/api/match?vaga_id=${vagaId}`, {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         });
-        if (matchData) setPrestadores(matchData);
+        const result = await res.json();
+        const ativos = (result.matches || []).filter((m: Match) =>
+          ['pendente', 'aceito', 'confirmado'].includes(m.status)
+        );
+        setMatches(ativos);
       }
     } catch (err) {
       console.error('Erro ao carregar vaga:', err);
@@ -163,18 +168,52 @@ export default function VagaDetailPage() {
         {user?.tipo === 'contratante' && (
           <div className="mt-6">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="section-title mb-0">Prestadores Compatíveis</h3>
-              <span className="text-sm text-gray-400">{prestadores.length}</span>
+              <h3 className="section-title mb-0">Interesses Recebidos</h3>
+              <span className="text-sm text-gray-400">{matches.length}</span>
             </div>
-            {prestadores.length === 0 ? (
+            {matches.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-500 text-sm">Nenhum prestador compatível encontrado</p>
+                <p className="text-gray-500 text-sm">Nenhum prestador demonstrou interesse ainda</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {prestadores.map((p) => (
-                  <PrestadorCard key={p.prestador_id} prestador={p} showMatch />
-                ))}
+                {matches.map((match) => {
+                  const prestador = (match as any).prestador_perfil;
+                  const prestadorUser = prestador?.users;
+                  return (
+                    <button
+                      key={match.id}
+                      onClick={() => router.push('/dashboard/contratante/matches')}
+                      className="w-full text-left card-hover p-4"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {prestadorUser?.foto_url ? (
+                            <img src={prestadorUser.foto_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-6 h-6 text-brand-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-900 truncate">{prestadorUser?.nome || 'Prestador'}</p>
+                          <p className="text-sm text-gray-500">{prestador?.funcao_principal}</p>
+                          {prestador?.media_avaliacao > 0 && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                              <span className="text-xs text-gray-500">{prestador.media_avaliacao.toFixed(1)}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={`badge text-xs ${getMatchStatusColor(match.status)}`}>
+                            {getMatchStatusLabel(match.status)}
+                          </span>
+                          <CheckCircle className="w-4 h-4 text-gray-300" />
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
