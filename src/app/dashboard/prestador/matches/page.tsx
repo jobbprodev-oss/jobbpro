@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase, getAuthToken } from '@/lib/supabase';
+import { getAuthToken } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import Header from '@/components/header';
 import BottomNav from '@/components/bottom-nav';
@@ -19,20 +19,19 @@ export default function PrestadorMatchesPage() {
   const [filtro, setFiltro] = useState<string>('todos');
 
   useEffect(() => {
-    if (prestadorPerfil) fetchMatches();
-  }, [prestadorPerfil]);
+    if (!authLoading && prestadorPerfil) fetchMatches();
+  }, [prestadorPerfil, authLoading]);
 
   const fetchMatches = async () => {
     if (!prestadorPerfil) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('matches')
-        .select('*, vagas(*), contratante_perfil(*, users(*))')
-        .eq('prestador_id', prestadorPerfil.id)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      setMatches(data || []);
+      const token = await getAuthToken();
+      const res = await fetch(`/api/match?prestador_id=${prestadorPerfil.id}`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      const result = await res.json();
+      setMatches(result.matches || []);
     } catch (err) {
       console.error('Erro ao buscar matches:', err);
     } finally {

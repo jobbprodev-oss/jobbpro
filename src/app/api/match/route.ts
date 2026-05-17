@@ -237,12 +237,14 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const vaga_id = searchParams.get('vaga_id');
     const prestador_id = searchParams.get('prestador_id');
+    const contratante_id = searchParams.get('contratante_id');
     const status = searchParams.get('status');
 
     let query = getSupabaseAdmin().from('matches').select('*, vagas(*), prestador_perfil(*, users(*)), contratante_perfil(*, users(*))');
 
     if (vaga_id) query = query.eq('vaga_id', vaga_id);
     if (prestador_id) query = query.eq('prestador_id', prestador_id);
+    if (contratante_id) query = query.eq('contratante_id', contratante_id);
     if (status) query = query.eq('status', status);
 
     const { data, error } = await query.order('created_at', { ascending: false });

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase, getAuthToken } from '@/lib/supabase';
+import { getAuthToken } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import Header from '@/components/header';
 import BottomNav from '@/components/bottom-nav';
@@ -19,20 +19,19 @@ export default function ContratanteMatchesPage() {
   const [filtro, setFiltro] = useState<string>('todos');
 
   useEffect(() => {
-    if (contratantePerfil) fetchMatches();
-  }, [contratantePerfil]);
+    if (!authLoading && contratantePerfil) fetchMatches();
+  }, [contratantePerfil, authLoading]);
 
   const fetchMatches = async () => {
     if (!contratantePerfil) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('matches')
-        .select('*, vagas(*), prestador_perfil(*, users(*))')
-        .eq('contratante_id', contratantePerfil.id)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      setMatches(data || []);
+      const token = await getAuthToken();
+      const res = await fetch(`/api/match?contratante_id=${contratantePerfil.id}`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      const result = await res.json();
+      setMatches(result.matches || []);
     } catch (err) {
       console.error('Erro ao buscar matches:', err);
     } finally {
