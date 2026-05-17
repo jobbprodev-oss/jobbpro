@@ -79,8 +79,16 @@ export async function POST(request: NextRequest) {
       valor = plano.valor;
       paymentDescricao = descricao || plano.nome;
     } else {
-      // Valor da função extra (configurável)
-      valor = 9.90;
+      // Buscar plano de compra de função cadastrado no admin
+      const { data: planoFuncao } = await getAdmin()
+        .from('planos')
+        .select('valor, nome')
+        .eq('categoria', 'funcao')
+        .eq('ativo', true)
+        .limit(1)
+        .maybeSingle();
+
+      valor = planoFuncao?.valor ?? 9.90;
       paymentDescricao = `Função extra: ${nome_funcao}`;
     }
 

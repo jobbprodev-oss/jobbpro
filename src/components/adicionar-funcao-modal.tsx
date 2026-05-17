@@ -24,9 +24,10 @@ export default function AdicionarFuncaoModal({ open, onClose }: AdicionarFuncaoM
   const [step, setStep] = useState<Step>('selecao');
   const [pixData, setPixData] = useState<{ pagamento_id: string; qr_code: string; copia_cola: string; valor: number } | null>(null);
   const [verificando, setVerificando] = useState(false);
+  const [valorFuncao, setValorFuncao] = useState<number>(9.90);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Reset ao fechar
+  // Reset ao fechar + buscar plano
   useEffect(() => {
     if (!open) {
       setStep('selecao');
@@ -36,6 +37,15 @@ export default function AdicionarFuncaoModal({ open, onClose }: AdicionarFuncaoM
       setLoading(false);
       setVerificando(false);
       if (pollRef.current) clearInterval(pollRef.current);
+    } else {
+      supabase
+        .from('planos')
+        .select('valor')
+        .eq('categoria', 'funcao')
+        .eq('ativo', true)
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => { if (data?.valor) setValorFuncao(data.valor); });
     }
   }, [open]);
 
@@ -263,7 +273,7 @@ export default function AdicionarFuncaoModal({ open, onClose }: AdicionarFuncaoM
           <div className="space-y-4">
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-700">
-                Você já possui 3 funções no perfil. Para adicionar mais uma, é necessário um pagamento de <strong>R$ 9,90</strong> via PIX.
+                Você já possui 3 funções no perfil. Para adicionar mais uma, é necessário um pagamento de <strong>R$ {valorFuncao.toFixed(2).replace('.', ',')}</strong> via PIX.
               </p>
             </div>
             <div>
@@ -279,7 +289,7 @@ export default function AdicionarFuncaoModal({ open, onClose }: AdicionarFuncaoM
               <button onClick={handleGerarPix} disabled={loading || !nomeSolicitar.trim()}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors">
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
-                Pagar R$ 9,90 via PIX
+                Pagar R$ {valorFuncao.toFixed(2).replace('.', ',')} via PIX
               </button>
               <button type="button" onClick={onClose}
                 className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
