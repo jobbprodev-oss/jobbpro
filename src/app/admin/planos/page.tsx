@@ -244,8 +244,8 @@ export default function AdminPlanosPage() {
                         <select
                           value={form.categoria}
                           onChange={(e) => setForm({ ...form, categoria: e.target.value })}
-                          disabled={isPlanoUnico || !editingId}
-                          className={`w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500 ${(isPlanoUnico || !editingId) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          disabled={true}
+                          className="w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white opacity-50 cursor-not-allowed"
                         >
                           <option value="servico">Plano de Serviço</option>
                           <option value="cadastro">Plano de Cadastro</option>
