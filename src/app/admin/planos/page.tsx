@@ -60,7 +60,9 @@ export default function AdminPlanosPage() {
     setShowForm(true);
   };
 
-  const isCadastroEdit = editingId ? planos.find((p) => p.id === editingId)?.categoria === 'cadastro' : false;
+  const isPlanoUnico = editingId
+    ? ['cadastro', 'funcao'].includes(planos.find((p) => p.id === editingId)?.categoria ?? '')
+    : false;
 
   const openEdit = (plano: Plano) => {
     setForm({
@@ -148,13 +150,15 @@ export default function AdminPlanosPage() {
                 <CreditCard className="w-5 h-5 text-brand-400" />
                 <h1 className="text-lg font-bold">Planos</h1>
               </div>
-              <button
-                onClick={openNew}
-                className="ml-auto flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Novo Plano
-              </button>
+              {filtroCategoria === 'servico' && (
+                <button
+                  onClick={openNew}
+                  className="ml-auto flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Novo Plano
+                </button>
+              )}
             </div>
           </header>
 
@@ -222,8 +226,8 @@ export default function AdminPlanosPage() {
                       <div>
                         <label className="text-sm font-medium text-gray-300 mb-1 block">Tipo de Usuário *</label>
                         <select value={form.tipo_usuario} onChange={(e) => setForm({ ...form, tipo_usuario: e.target.value })}
-                          disabled={isCadastroEdit}
-                          className={`w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500 ${isCadastroEdit ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                          disabled={isPlanoUnico}
+                          className={`w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500 ${isPlanoUnico ? 'opacity-50 cursor-not-allowed' : ''}`}>
                           <option value="prestador">Prestador</option>
                           <option value="contratante">Contratante</option>
                         </select>
@@ -233,8 +237,8 @@ export default function AdminPlanosPage() {
                         <select
                           value={form.categoria}
                           onChange={(e) => setForm({ ...form, categoria: e.target.value })}
-                          disabled={isCadastroEdit}
-                          className={`w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500 ${isCadastroEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          disabled={isPlanoUnico}
+                          className={`w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500 ${isPlanoUnico ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <option value="servico">Plano de Serviço</option>
                           <option value="cadastro">Plano de Cadastro</option>
@@ -277,7 +281,7 @@ export default function AdminPlanosPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {planos.filter((p) => filtroCategoria === 'todos' || (p.categoria || 'servico') === filtroCategoria).map((plano) => (
+                {planos.filter((p) => filtroCategoria === 'todos' || (p.categoria ?? 'servico').trim().toLowerCase() === filtroCategoria).map((plano) => (
                   <div key={plano.id} className={`bg-gray-800 border rounded-xl p-5 ${plano.ativo ? 'border-gray-700' : 'border-red-900/50 opacity-60'}`}>
                     <div className="flex items-start justify-between mb-3">
                       <div>
