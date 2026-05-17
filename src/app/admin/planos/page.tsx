@@ -148,14 +148,25 @@ export default function AdminPlanosPage() {
                 <CreditCard className="w-5 h-5 text-brand-400" />
                 <h1 className="text-lg font-bold">Planos</h1>
               </div>
-              {/* Botão Novo Plano oculto */}
+              <button
+                onClick={openNew}
+                className="ml-auto flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Novo Plano
+              </button>
             </div>
           </header>
 
           <div className="max-w-6xl mx-auto px-6 py-6">
             {/* Filtro por Categoria */}
             <div className="flex gap-2 mb-6">
-              {[{v: 'todos', l: 'Todos'}, {v: 'servico', l: 'Planos de Serviço'}, {v: 'cadastro', l: 'Planos de Cadastro'}].map(({v, l}) => (
+              {[
+                {v: 'todos', l: 'Todos'},
+                {v: 'servico', l: 'Planos de Serviço'},
+                {v: 'cadastro', l: 'Planos de Cadastro'},
+                {v: 'funcao', l: 'Compra de Função'},
+              ].map(({v, l}) => (
                 <button key={v} onClick={() => setFiltroCategoria(v as any)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     filtroCategoria === v ? 'bg-brand-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
@@ -219,9 +230,16 @@ export default function AdminPlanosPage() {
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-300 mb-1 block">Categoria</label>
-                        <div className="w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-gray-400">
-                          {form.categoria === 'cadastro' ? 'Plano de Cadastro' : 'Plano de Serviço'}
-                        </div>
+                        <select
+                          value={form.categoria}
+                          onChange={(e) => setForm({ ...form, categoria: e.target.value })}
+                          disabled={isCadastroEdit}
+                          className={`w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500 ${isCadastroEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <option value="servico">Plano de Serviço</option>
+                          <option value="cadastro">Plano de Cadastro</option>
+                          <option value="funcao">Compra de Função</option>
+                        </select>
                       </div>
                     </div>
                     <div>
@@ -268,8 +286,16 @@ export default function AdminPlanosPage() {
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${plano.tipo_usuario === 'prestador' ? 'bg-blue-500/20 text-blue-400' : 'bg-violet-500/20 text-violet-400'}`}>
                             {plano.tipo_usuario === 'prestador' ? 'Prestador' : 'Contratante'}
                           </span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${(plano.categoria || 'servico') === 'cadastro' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                            {(plano.categoria || 'servico') === 'cadastro' ? 'Cadastro' : 'Serviço'}
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            (plano.categoria || 'servico') === 'cadastro' ? 'bg-amber-500/20 text-amber-400' :
+                            (plano.categoria) === 'funcao' ? 'bg-purple-500/20 text-purple-400' :
+                            'bg-emerald-500/20 text-emerald-400'
+                          }`}>
+                            {{
+                        'cadastro': 'Cadastro',
+                        'servico': 'Serviço',
+                        'funcao': 'Compra de Função',
+                      }[(plano.categoria || 'servico')] ?? 'Serviço'}
                           </span>
                         </div>
                       </div>

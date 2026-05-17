@@ -1,7 +1,7 @@
 export type UserType = 'prestador' | 'contratante' | 'admin';
 export type MatchStatus = 'pendente' | 'aceito' | 'confirmado' | 'recusado' | 'concluido' | 'cancelado';
 export type VestimentaTipo = 'social' | 'casual' | 'uniforme' | 'esporte_fino' | 'outro';
-export type PlanoCategoria = 'servico' | 'cadastro';
+export type PlanoCategoria = 'servico' | 'cadastro' | 'funcao';
 
 export interface User {
   id: string;
