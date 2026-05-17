@@ -33,6 +33,10 @@ export default function AdminPlanosPage() {
   const [saving, setSaving] = useState(false);
   const [filtroCategoria, setFiltroCategoria] = useState<'todos' | PlanoCategoria>('todos');
 
+  const planosFiltrados = filtroCategoria === 'todos'
+    ? planos
+    : planos.filter((p) => (p.categoria ?? 'servico').trim().toLowerCase() === filtroCategoria);
+
   useEffect(() => {
     if (!authLoading && user) {
       if (user.tipo !== 'admin') { router.push('/'); return; }
@@ -54,8 +58,9 @@ export default function AdminPlanosPage() {
     }
   };
 
-  const openNew = () => {
-    setForm({ ...EMPTY_FORM, categoria: 'servico' });
+  const openNew = (cat?: string) => {
+    const categoria = cat || (filtroCategoria !== 'todos' ? filtroCategoria : 'servico');
+    setForm({ ...EMPTY_FORM, categoria });
     setEditingId(null);
     setShowForm(true);
   };
@@ -150,13 +155,15 @@ export default function AdminPlanosPage() {
                 <CreditCard className="w-5 h-5 text-brand-400" />
                 <h1 className="text-lg font-bold">Planos</h1>
               </div>
-              {filtroCategoria === 'servico' && (
+              {(filtroCategoria === 'servico' ||
+                (['cadastro', 'funcao'].includes(filtroCategoria) && planosFiltrados.length === 0)
+              ) && (
                 <button
-                  onClick={openNew}
+                  onClick={() => openNew()}
                   className="ml-auto flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors"
                 >
                   <Plus className="w-4 h-4" />
-                  Novo Plano
+                  {filtroCategoria === 'servico' ? 'Novo Plano' : 'Criar Plano'}
                 </button>
               )}
             </div>
@@ -271,17 +278,17 @@ export default function AdminPlanosPage() {
             {/* Lista */}
             {loading ? (
               <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-gray-500" /></div>
-            ) : planos.length === 0 ? (
+            ) : planosFiltrados.length === 0 ? (
               <div className="text-center py-20">
                 <CreditCard className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-500">Nenhum plano cadastrado</p>
-                <button onClick={openNew} className="mt-4 px-4 py-2 bg-brand-600 hover:bg-brand-700 rounded-lg text-sm font-medium transition-colors">
-                  Criar primeiro plano
+                <p className="text-gray-500">Nenhum plano encontrado</p>
+                <button onClick={() => openNew()} className="mt-4 px-4 py-2 bg-brand-600 hover:bg-brand-700 rounded-lg text-sm font-medium transition-colors">
+                  Criar plano
                 </button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {planos.filter((p) => filtroCategoria === 'todos' || (p.categoria ?? 'servico').trim().toLowerCase() === filtroCategoria).map((plano) => (
+                {planosFiltrados.map((plano) => (
                   <div key={plano.id} className={`bg-gray-800 border rounded-xl p-5 ${plano.ativo ? 'border-gray-700' : 'border-red-900/50 opacity-60'}`}>
                     <div className="flex items-start justify-between mb-3">
                       <div>
