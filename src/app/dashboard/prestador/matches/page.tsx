@@ -39,6 +39,24 @@ export default function PrestadorMatchesPage() {
     }
   };
 
+  const cancelarInteresse = async (vagaId: string, prestadorId: string) => {
+    if (!confirm('Tem certeza que deseja cancelar seu interesse nesta vaga?')) return;
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ vaga_id: vagaId, prestador_id: prestadorId, action: 'cancelar' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Interesse cancelado');
+      fetchMatches();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao cancelar');
+    }
+  };
+
   const responderMatch = async (matchId: string, vagaId: string, acao: 'aceitar' | 'recusar' | 'confirmar') => {
     try {
       const token = await getAuthToken();
@@ -154,9 +172,17 @@ export default function PrestadorMatchesPage() {
                     </div>
 
                     {match.status === 'pendente' && !vagaExpirada && (
-                      <p className="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-100 text-center">
-                        Aguardando resposta do contratante
-                      </p>
+                      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
+                        <p className="text-xs text-gray-400 flex-1">
+                          Aguardando resposta do contratante
+                        </p>
+                        <button
+                          onClick={() => cancelarInteresse(match.vaga_id, match.prestador_id)}
+                          className="flex items-center gap-1 text-xs text-red-500 border border-red-200 hover:bg-red-50 rounded-lg px-3 py-1.5 font-medium transition-colors"
+                        >
+                          <XCircle className="w-3.5 h-3.5" /> Cancelar
+                        </button>
+                      </div>
                     )}
 
                     {match.status === 'pendente' && vagaExpirada && (

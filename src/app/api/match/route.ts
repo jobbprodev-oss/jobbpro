@@ -216,6 +216,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ match: data });
     }
 
+    if (action === 'cancelar') {
+      const { data, error } = await getSupabaseAdmin()
+        .from('matches')
+        .delete()
+        .eq('vaga_id', vaga_id)
+        .eq('prestador_id', prestador_id)
+        .eq('status', 'pendente')
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return NextResponse.json({ match: data });
+    }
+
     return NextResponse.json({ error: 'Ação inválida' }, { status: 400 });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Erro interno' }, { status: 500 });
