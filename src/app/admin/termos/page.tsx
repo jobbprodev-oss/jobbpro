@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { getAuthToken } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import AuthProvider from '@/components/auth-provider';
 import { Loader2, ArrowLeft, FileText, Shield, Save, Eye } from 'lucide-react';
@@ -35,17 +35,13 @@ export default function AdminTermosPage() {
   const fetchTermos = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('configuracoes')
-        .select('termos_uso, politica_privacidade')
-        .eq('id', 'global')
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
-      setTermosData(data || {});
+      const token = await getAuthToken();
+      const res = await fetch('/api/admin/configuracoes', {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setTermosData(data.configuracoes || {});
     } catch (err) {
       console.error('Erro ao buscar termos:', err);
       toast.error('Erro ao carregar termos');
@@ -57,15 +53,17 @@ export default function AdminTermosPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('configuracoes')
-        .upsert({
-          id: 'global',
+      const token = await getAuthToken();
+      const res = await fetch('/api/admin/configuracoes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({
           termos_uso: termosData.termos_uso || '',
           politica_privacidade: termosData.politica_privacidade || '',
-        });
-
-      if (error) throw error;
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
       toast.success('Termos salvos com sucesso!');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar termos');
