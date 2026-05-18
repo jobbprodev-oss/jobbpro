@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { getAuthToken } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import Header from '@/components/header';
 import AuthProvider from '@/components/auth-provider';
@@ -24,28 +24,29 @@ export default function AvaliarPage() {
   const [jaAvaliou, setJaAvaliou] = useState(false);
 
   useEffect(() => {
-    if (user && matchId) fetchMatch();
-  }, [user, matchId]);
+    if (!authLoading && user) {
+      if (user.tipo === 'admin') { router.push('/admin'); return; }
+      if (matchId) fetchMatch();
+    }
+  }, [user, authLoading, matchId]);
 
   const fetchMatch = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('matches')
-        .select('*, vagas(*), prestador_perfil(*, users(*)), contratante_perfil(*, users(*))')
-        .eq('id', matchId)
-        .single();
-      if (error) throw error;
-      setMatch(data);
+      const token = await getAuthToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-      // Verificar se já avaliou
-      const { data: avExistente } = await supabase
-        .from('avaliacoes')
-        .select('id')
-        .eq('match_id', matchId)
-        .eq('avaliador_id', user!.id)
-        .maybeSingle();
-      if (avExistente) setJaAvaliou(true);
+      const [matchRes, avRes] = await Promise.all([
+        fetch(`/api/match?match_id=${matchId}`, { headers }),
+        fetch(`/api/avaliacoes?match_id=${matchId}`, { headers }),
+      ]);
+
+      const matchData = await matchRes.json();
+      if (!matchRes.ok) throw new Error(matchData.error);
+      setMatch(matchData.match);
+
+      const avData = await avRes.json();
+      if (avData.jaAvaliou) setJaAvaliou(true);
     } catch (err) {
       console.error('Erro:', err);
     } finally {
@@ -72,23 +73,21 @@ export default function AvaliarPage() {
 
     setEnviando(true);
     try {
-      const { error } = await supabase.from('avaliacoes').insert({
-        match_id: matchId,
-        avaliador_id: user.id,
-        avaliado_id: avaliadoId,
-        nota,
-        descricao: descricao.trim() || null,
+      const token = await getAuthToken();
+      const res = await fetch('/api/avaliacoes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ match_id: matchId, avaliado_id: avaliadoId, nota, descricao }),
       });
-      if (error) throw error;
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 409) { setJaAvaliou(true); toast.error('Você já avaliou este serviço'); return; }
+        throw new Error(data.error);
+      }
       toast.success('Avaliação enviada!');
       setJaAvaliou(true);
     } catch (err: any) {
-      if (err.message?.includes('duplicate') || err.code === '23505') {
-        toast.error('Você já avaliou este serviço');
-        setJaAvaliou(true);
-      } else {
-        toast.error(err.message || 'Erro ao enviar');
-      }
+      toast.error(err.message || 'Erro ao enviar');
     } finally {
       setEnviando(false);
     }

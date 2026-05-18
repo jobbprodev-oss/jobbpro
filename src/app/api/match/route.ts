@@ -250,10 +250,22 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
+    const match_id = searchParams.get('match_id');
     const vaga_id = searchParams.get('vaga_id');
     const prestador_id = searchParams.get('prestador_id');
     const contratante_id = searchParams.get('contratante_id');
     const status = searchParams.get('status');
+
+    // Busca por ID único
+    if (match_id) {
+      const { data, error } = await getSupabaseAdmin()
+        .from('matches')
+        .select('*, vagas(*), prestador_perfil(*, users(*)), contratante_perfil(*, users(*))')
+        .eq('id', match_id)
+        .single();
+      if (error) throw error;
+      return NextResponse.json({ match: data });
+    }
 
     let query = getSupabaseAdmin().from('matches').select('*, vagas(*), prestador_perfil(*, users(*)), contratante_perfil(*, users(*))');
 
