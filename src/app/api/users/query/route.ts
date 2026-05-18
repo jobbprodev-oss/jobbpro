@@ -40,17 +40,28 @@ export async function POST(request: NextRequest) {
       const { data: users, error } = await query.order('created_at', { ascending: false });
       if (error) return NextResponse.json({ data: null, error: error.message });
 
-      // Buscar ratings via service role (sem RLS)
+      // Calcular ratings direto da tabela avaliacoes (mais confiável que o cache do perfil)
       const userIds = (users || []).map((u: any) => u.id);
-      const [{ data: prestRatings }, { data: contrRatings }] = await Promise.all([
-        admin.from('prestador_perfil').select('user_id, media_avaliacao, total_avaliacoes').in('user_id', userIds),
-        admin.from('contratante_perfil').select('user_id, media_avaliacao, total_avaliacoes').in('user_id', userIds),
-      ]);
+      const { data: avRows } = await admin
+        .from('avaliacoes')
+        .select('avaliado_id, nota')
+        .in('avaliado_id', userIds);
+
+      // Agrupar por avaliado_id e calcular média
+      const ratingsMap: Record<string, { soma: number; total: number }> = {};
+      for (const av of avRows || []) {
+        if (!ratingsMap[av.avaliado_id]) ratingsMap[av.avaliado_id] = { soma: 0, total: 0 };
+        ratingsMap[av.avaliado_id].soma += av.nota;
+        ratingsMap[av.avaliado_id].total += 1;
+      }
 
       const data = (users || []).map((u: any) => {
-        const rating = prestRatings?.find((r: any) => r.user_id === u.id)
-          || contrRatings?.find((r: any) => r.user_id === u.id);
-        return { ...u, media_avaliacao: rating?.media_avaliacao ?? null, total_avaliacoes: rating?.total_avaliacoes ?? null };
+        const r = ratingsMap[u.id];
+        return {
+          ...u,
+          media_avaliacao: r ? parseFloat((r.soma / r.total).toFixed(1)) : null,
+          total_avaliacoes: r ? r.total : null,
+        };
       });
 
       return NextResponse.json({ data, error: null });
