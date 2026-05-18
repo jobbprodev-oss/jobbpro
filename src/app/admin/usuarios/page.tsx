@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase, getAuthToken } from '@/lib/supabase';
+import { getAuthToken } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import AuthProvider from '@/components/auth-provider';
 import { Loader2, ArrowLeft, Search, Shield, Users, User, Eye, Ban, CheckCircle, ChevronDown, Plus, Edit2, Star, X, MessageSquare } from 'lucide-react';
@@ -65,38 +65,7 @@ export default function AdminUsuariosPage() {
       const { data: users, error: usersError } = await res.json();
 
       if (usersError) throw new Error(usersError);
-      
-      // Then fetch ratings for users with profiles
-      const userIds = (users || []).map((u: any) => u.id);
-      if (userIds.length === 0) {
-        setUsuarios([]);
-        return;
-      }
-      
-      const { data: prestadorRatings } = await supabase
-        .from('prestador_perfil')
-        .select('user_id, media_avaliacao, total_avaliacoes')
-        .in('user_id', userIds);
-        
-      const { data: contratanteRatings } = await supabase
-        .from('contratante_perfil')
-        .select('user_id, media_avaliacao, total_avaliacoes')
-        .in('user_id', userIds);
-      
-      // Process ratings
-      const processedData = (users || []).map((user: any) => {
-        const prestadorRating = prestadorRatings?.find((r: any) => r.user_id === user.id);
-        const contratanteRating = contratanteRatings?.find((r: any) => r.user_id === user.id);
-        const rating = prestadorRating || contratanteRating;
-        
-        return {
-          ...user,
-          media_avaliacao: rating?.media_avaliacao,
-          total_avaliacoes: rating?.total_avaliacoes,
-        };
-      });
-      
-      setUsuarios(processedData);
+      setUsuarios(users || []);
     } catch (err) {
       console.error('Erro:', err);
     } finally {

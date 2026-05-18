@@ -37,8 +37,23 @@ export async function POST(request: NextRequest) {
     if (action === 'list') {
       let query = admin.from('users').select('id, tipo, nome, email, celular, cidade, estado, ativo, created_at');
       if (filters?.tipo) query = query.eq('tipo', filters.tipo);
-      const { data, error } = await query.order('created_at', { ascending: false });
-      return NextResponse.json({ data, error: error?.message });
+      const { data: users, error } = await query.order('created_at', { ascending: false });
+      if (error) return NextResponse.json({ data: null, error: error.message });
+
+      // Buscar ratings via service role (sem RLS)
+      const userIds = (users || []).map((u: any) => u.id);
+      const [{ data: prestRatings }, { data: contrRatings }] = await Promise.all([
+        admin.from('prestador_perfil').select('user_id, media_avaliacao, total_avaliacoes').in('user_id', userIds),
+        admin.from('contratante_perfil').select('user_id, media_avaliacao, total_avaliacoes').in('user_id', userIds),
+      ]);
+
+      const data = (users || []).map((u: any) => {
+        const rating = prestRatings?.find((r: any) => r.user_id === u.id)
+          || contrRatings?.find((r: any) => r.user_id === u.id);
+        return { ...u, media_avaliacao: rating?.media_avaliacao ?? null, total_avaliacoes: rating?.total_avaliacoes ?? null };
+      });
+
+      return NextResponse.json({ data, error: null });
     }
 
     if (action === 'stats') {
