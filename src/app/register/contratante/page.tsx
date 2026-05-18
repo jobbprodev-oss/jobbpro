@@ -18,6 +18,7 @@ export default function RegisterContratantePage() {
   const [pixData, setPixData] = useState<{ asaas_payment_id: string; qr_code: string; copia_cola: string; valor: number; plano_id: string; plano_nome: string; duracao_dias: number } | null>(null);
   const [pixLoading, setPixLoading] = useState(false);
   const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
   const [form, setForm] = useState({
     nome: '',
     cpf_cnpj: '',
@@ -94,10 +95,30 @@ export default function RegisterContratantePage() {
     }
   };
 
-  const nextStep = () => {
-    if (validateStep(step)) {
-      setStep((s) => Math.min(s + 1, 3) as Step);
+  const nextStep = async () => {
+    if (!validateStep(step)) return;
+
+    if (step === 1) {
+      setCheckingEmail(true);
+      try {
+        const res = await fetch('/api/users/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'emailExists', email: form.email.trim().toLowerCase() }),
+        });
+        const data = await res.json();
+        if (data.exists) {
+          toast.error('Este e-mail já está cadastrado. Faça login ou use outro e-mail.');
+          return;
+        }
+      } catch {
+        // falha silenciosa — não bloqueia o cadastro
+      } finally {
+        setCheckingEmail(false);
+      }
     }
+
+    setStep((s) => Math.min(s + 1, 3) as Step);
   };
 
   const prevStep = () => setStep((s) => Math.max(s - 1, 1) as Step);
@@ -425,8 +446,9 @@ export default function RegisterContratantePage() {
 
         <div className="mt-8">
           {step < 3 ? (
-            <button onClick={nextStep} className="btn-primary w-full flex items-center justify-center gap-2">
-              Próximo <ArrowRight className="w-5 h-5" />
+            <button onClick={nextStep} disabled={checkingEmail} className="btn-primary w-full flex items-center justify-center gap-2">
+              {checkingEmail ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
+              {checkingEmail ? 'Verificando...' : 'Próximo'}
             </button>
           ) : pagamentoConfirmado ? (
             <button onClick={handleSubmit} disabled={loading} className="btn-success w-full flex items-center justify-center gap-2">

@@ -34,6 +34,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ data, error: error?.message });
     }
 
+    if (action === 'emailExists') {
+      const normalized = email?.trim().toLowerCase();
+      if (!normalized) return NextResponse.json({ exists: false });
+      const { data } = await admin.from('users').select('id').eq('email', normalized).maybeSingle();
+      return NextResponse.json({ exists: !!data });
+    }
+
     if (action === 'list') {
       let query = admin.from('users').select('id, tipo, nome, email, celular, cidade, estado, ativo, created_at');
       if (filters?.tipo) query = query.eq('tipo', filters.tipo);

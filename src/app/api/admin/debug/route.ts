@@ -81,7 +81,18 @@ export async function GET(request: NextRequest) {
     results.update_test = { success: false, error: e.message };
   }
 
-  // 5. Verificar se RPC existe
+  // 5. Verificar avaliacoes
+  try {
+    const { data: avs, error: avErr, count } = await client
+      .from('avaliacoes')
+      .select('id, avaliado_id, nota, descricao', { count: 'exact' })
+      .limit(5);
+    results.avaliacoes = { total: count, sample: avs, error: avErr?.message };
+  } catch (e: any) {
+    results.avaliacoes = { error: e.message };
+  }
+
+  // 6. Verificar se RPC existe
   try {
     const { data, error } = await client.rpc('responder_solicitacao', {
       p_id: '00000000-0000-0000-0000-000000000000',
