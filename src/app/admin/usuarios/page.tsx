@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase, getAuthToken } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import AuthProvider from '@/components/auth-provider';
-import { Loader2, ArrowLeft, Search, Shield, Users, User, Eye, Ban, CheckCircle, ChevronDown, Plus, Edit2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Search, Shield, Users, User, Eye, Ban, CheckCircle, ChevronDown, Plus, Edit2, Star, X, MessageSquare } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -20,8 +20,16 @@ interface UserRow {
   estado?: string;
   ativo: boolean;
   created_at: string;
-  avaliacao?: number;
+  media_avaliacao?: number;
   total_avaliacoes?: number;
+}
+
+interface Avaliacao {
+  id: string;
+  nota: number;
+  descricao?: string;
+  created_at: string;
+  matches?: { vagas?: { titulo?: string } };
 }
 
 export default function AdminUsuariosPage() {
@@ -31,6 +39,9 @@ export default function AdminUsuariosPage() {
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('todos');
   const [busca, setBusca] = useState('');
+  const [popupUser, setPopupUser] = useState<UserRow | null>(null);
+  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
+  const [loadingAvaliacoes, setLoadingAvaliacoes] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -64,12 +75,12 @@ export default function AdminUsuariosPage() {
       
       const { data: prestadorRatings } = await supabase
         .from('prestador_perfil')
-        .select('id, user_id, avaliacao, total_avaliacoes')
+        .select('user_id, media_avaliacao, total_avaliacoes')
         .in('user_id', userIds);
         
       const { data: contratanteRatings } = await supabase
         .from('contratante_perfil')
-        .select('id, user_id, avaliacao, total_avaliacoes')
+        .select('user_id, media_avaliacao, total_avaliacoes')
         .in('user_id', userIds);
       
       // Process ratings
@@ -80,7 +91,7 @@ export default function AdminUsuariosPage() {
         
         return {
           ...user,
-          avaliacao: rating?.avaliacao,
+          media_avaliacao: rating?.media_avaliacao,
           total_avaliacoes: rating?.total_avaliacoes,
         };
       });
@@ -90,6 +101,24 @@ export default function AdminUsuariosPage() {
       console.error('Erro:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const abrirAvaliacoes = async (u: UserRow) => {
+    setPopupUser(u);
+    setAvaliacoes([]);
+    setLoadingAvaliacoes(true);
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(`/api/avaliacoes?user_id=${u.id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const data = await res.json();
+      setAvaliacoes(data.avaliacoes || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingAvaliacoes(false);
     }
   };
 
@@ -222,14 +251,18 @@ export default function AdminUsuariosPage() {
                           {u.cidade ? `${u.cidade}${u.estado ? `/${u.estado}` : ''}` : '—'}
                         </td>
                         <td className="py-3">
-                          {u.avaliacao ? (
-                            <div className="flex items-center gap-1">
-                              <span className="text-yellow-400">⭐</span>
-                              <span className="text-white font-medium">{u.avaliacao.toFixed(1)}</span>
-                              {u.total_avaliacoes && (
+                          {u.media_avaliacao && u.media_avaliacao > 0 ? (
+                            <button
+                              onClick={() => abrirAvaliacoes(u)}
+                              className="flex items-center gap-1 hover:opacity-75 transition-opacity cursor-pointer"
+                              title="Ver comentários"
+                            >
+                              <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                              <span className="text-white font-medium">{u.media_avaliacao.toFixed(1)}</span>
+                              {u.total_avaliacoes ? (
                                 <span className="text-xs text-gray-500">({u.total_avaliacoes})</span>
-                              )}
-                            </div>
+                              ) : null}
+                            </button>
                           ) : (
                             <span className="text-gray-500 text-sm">—</span>
                           )}
@@ -279,6 +312,52 @@ export default function AdminUsuariosPage() {
                 </table>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Popup avaliações */}
+      {popupUser && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setPopupUser(null)}>
+          <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
+              <div>
+                <h2 className="font-bold text-white">{popupUser.nome}</h2>
+                <p className="text-xs text-gray-400">Avaliações recebidas</p>
+              </div>
+              <button onClick={() => setPopupUser(null)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-4 space-y-3">
+              {loadingAvaliacoes ? (
+                <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+              ) : avaliacoes.length === 0 ? (
+                <div className="text-center py-10">
+                  <MessageSquare className="w-10 h-10 text-gray-600 mx-auto mb-2" />
+                  <p className="text-gray-500 text-sm">Nenhuma avaliação encontrada</p>
+                </div>
+              ) : avaliacoes.map((av) => (
+                <div key={av.id} className="bg-gray-700/50 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map((s) => (
+                        <Star key={s} className={`w-4 h-4 ${s <= av.nota ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`} />
+                      ))}
+                    </div>
+                    <span className="text-xs text-gray-500">{new Date(av.created_at).toLocaleDateString('pt-BR')}</span>
+                  </div>
+                  {av.matches?.vagas?.titulo && (
+                    <p className="text-xs text-brand-400 mb-1">Vaga: {av.matches.vagas.titulo}</p>
+                  )}
+                  {av.descricao ? (
+                    <p className="text-sm text-gray-300">{av.descricao}</p>
+                  ) : (
+                    <p className="text-xs text-gray-500 italic">Sem comentário</p>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

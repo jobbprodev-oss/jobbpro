@@ -11,7 +11,7 @@ function getAdmin(): SupabaseClient {
 
 export const dynamic = 'force-dynamic';
 
-// GET - Verificar se já avaliou
+// GET - Verificar se já avaliou (match_id) OU buscar avaliações de um user (user_id)
 export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
@@ -22,6 +22,24 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const match_id = searchParams.get('match_id');
+    const user_id = searchParams.get('user_id');
+
+    // Buscar avaliações de um usuário (para painel admin)
+    if (user_id) {
+      const { data: userRow } = await getAdmin().from('users').select('tipo').eq('id', authUser.id).single();
+      if (userRow?.tipo !== 'admin') return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
+
+      const { data, error } = await getAdmin()
+        .from('avaliacoes')
+        .select('id, nota, descricao, created_at, avaliador_id, matches(vagas(titulo))')
+        .eq('avaliado_id', user_id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return NextResponse.json({ avaliacoes: data });
+    }
+
+    // Verificar se já avaliou este match
     if (!match_id) return NextResponse.json({ error: 'match_id obrigatório' }, { status: 400 });
 
     const { data } = await getAdmin()
