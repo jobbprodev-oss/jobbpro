@@ -8,11 +8,12 @@ import BottomNav from '@/components/bottom-nav';
 import AuthProvider from '@/components/auth-provider';
 import VagaCard from '@/components/vaga-card';
 import { Loader2, Search, Filter, MapPin } from 'lucide-react';
-import { FUNCOES_DISPONIVEIS } from '@/lib/types';
+import { useFuncoes } from '@/hooks/useFuncoes';
 import type { Vaga } from '@/lib/types';
 
 export default function PrestadorVagasPage() {
   const { loading: authLoading } = useAppStore();
+  const { funcoes } = useFuncoes();
   const [vagas, setVagas] = useState<Vaga[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroFuncao, setFiltroFuncao] = useState('');
@@ -103,7 +104,7 @@ export default function PrestadorVagasPage() {
                     className="select-field"
                   >
                     <option value="">Todas as funções</option>
-                    {FUNCOES_DISPONIVEIS.map((f) => (
+                    {funcoes.map((f) => (
                       <option key={f} value={f}>{f}</option>
                     ))}
                   </select>

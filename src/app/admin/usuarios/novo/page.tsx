@@ -8,13 +8,15 @@ import { getAuthToken, supabase, uploadImage } from '@/lib/supabase';
 import AuthProvider from '@/components/auth-provider';
 import { Loader2, ArrowLeft, UserPlus, Check, Upload, FileText, X, PlusCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { FUNCOES_DISPONIVEIS, ESTADOS_BR } from '@/lib/types';
+import { ESTADOS_BR } from '@/lib/types';
+import { useFuncoes } from '@/hooks/useFuncoes';
 import type { Plano } from '@/lib/types';
 import SearchableSelect from '@/components/searchable-select';
 import SolicitarFuncaoModal from '@/components/solicitar-funcao-modal';
 import toast from 'react-hot-toast';
 
 export default function AdminNovoUsuarioPage() {
+  const { funcoes } = useFuncoes();
   const router = useRouter();
   const { user, loading: authLoading } = useAppStore();
   const [planos, setPlanos] = useState<Plano[]>([]);
@@ -234,7 +236,7 @@ export default function AdminNovoUsuarioPage() {
                       <SearchableSelect
                         value={form.funcao_principal}
                         onChange={(v) => updateForm('funcao_principal', v)}
-                        options={FUNCOES_DISPONIVEIS.filter((f) => f !== form.funcao_2 && f !== form.funcao_3)}
+                        options={funcoes.filter((f) => f !== form.funcao_2 && f !== form.funcao_3)}
                         placeholder="Buscar função..."
                       />
                     </div>
@@ -243,7 +245,7 @@ export default function AdminNovoUsuarioPage() {
                       <SearchableSelect
                         value={form.funcao_2}
                         onChange={(v) => updateForm('funcao_2', v)}
-                        options={FUNCOES_DISPONIVEIS.filter((f) => f !== form.funcao_principal && f !== form.funcao_3)}
+                        options={funcoes.filter((f) => f !== form.funcao_principal && f !== form.funcao_3)}
                         placeholder="Opcional"
                       />
                     </div>
@@ -252,7 +254,7 @@ export default function AdminNovoUsuarioPage() {
                       <SearchableSelect
                         value={form.funcao_3}
                         onChange={(v) => updateForm('funcao_3', v)}
-                        options={FUNCOES_DISPONIVEIS.filter((f) => f !== form.funcao_principal && f !== form.funcao_2)}
+                        options={funcoes.filter((f) => f !== form.funcao_principal && f !== form.funcao_2)}
                         placeholder="Opcional"
                       />
                     </div>

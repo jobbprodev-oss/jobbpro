@@ -8,7 +8,8 @@ import Header from '@/components/header';
 import BottomNav from '@/components/bottom-nav';
 import AuthProvider from '@/components/auth-provider';
 import { Loader2, CheckCircle2, PlusCircle } from 'lucide-react';
-import { FUNCOES_DISPONIVEIS, ESTADOS_BR } from '@/lib/types';
+import { ESTADOS_BR } from '@/lib/types';
+import { useFuncoes } from '@/hooks/useFuncoes';
 import SearchableSelect from '@/components/searchable-select';
 import SolicitarFuncaoModal from '@/components/solicitar-funcao-modal';
 import VagaPagamentoModal from '@/components/vaga-pagamento-modal';
@@ -18,6 +19,7 @@ import toast from 'react-hot-toast';
 export default function NovaVagaPage() {
   const router = useRouter();
   const { contratantePerfil } = useAppStore();
+  const { funcoes } = useFuncoes();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     titulo: '',
@@ -109,7 +111,7 @@ export default function NovaVagaPage() {
           <SearchableSelect
             value={form.funcao_principal}
             onChange={(v) => updateForm('funcao_principal', v)}
-            options={FUNCOES_DISPONIVEIS}
+            options={funcoes}
             placeholder="Buscar função..."
           />
           <button type="button" onClick={() => setShowSolicitarFuncao(true)}

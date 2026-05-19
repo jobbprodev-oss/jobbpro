@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase, getAuthToken } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
-import { FUNCOES_DISPONIVEIS } from '@/lib/types';
+import { useFuncoes } from '@/hooks/useFuncoes';
 import SearchableSelect from '@/components/searchable-select';
 import { X, Loader2, Plus, QrCode, Copy, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import type { PrestadorPerfil } from '@/lib/types';
@@ -83,10 +83,11 @@ export default function AdicionarFuncaoModal({ open, onClose }: AdicionarFuncaoM
   ].filter(Boolean);
 
   const slot = !prestadorPerfil.funcao_2 ? 'funcao_2' : !prestadorPerfil.funcao_3 ? 'funcao_3' : null;
+  const { funcoes } = useFuncoes();
   const todasPreenchidas = !slot;
   const temSlotExtra = !prestadorPerfil.funcao_4 || !prestadorPerfil.funcao_5 || !prestadorPerfil.funcao_6;
 
-  const opcoesDisponiveis = FUNCOES_DISPONIVEIS.filter((f) => !funcoesUsadas.includes(f));
+  const opcoesDisponiveis = funcoes.filter((f) => !funcoesUsadas.includes(f));
 
   const handleSalvar = async () => {
     if (!funcao.trim() || !slot) return;

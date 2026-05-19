@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Camera, Loader2, CheckCircle2, Upload, PlusCircle, QrCode, Copy, Clock } from 'lucide-react';
 import { supabase, uploadImage } from '@/lib/supabase';
-import { FUNCOES_DISPONIVEIS, ESTADOS_BR } from '@/lib/types';
+import { ESTADOS_BR } from '@/lib/types';
+import { useFuncoes } from '@/hooks/useFuncoes';
 import SearchableSelect from '@/components/searchable-select';
 import { maskCPF, maskPhone, maskCEP } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -14,6 +15,7 @@ type Step = 1 | 2 | 3 | 4 | 5;
 
 export default function RegisterPrestadorPage() {
   const router = useRouter();
+  const { funcoes } = useFuncoes();
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
   const [fotoFile, setFotoFile] = useState<File | null>(null);
@@ -461,7 +463,7 @@ export default function RegisterPrestadorPage() {
               <SearchableSelect
                 value={form.funcao_principal}
                 onChange={(v) => updateForm('funcao_principal', v)}
-                options={FUNCOES_DISPONIVEIS.filter((f) => f !== form.funcao_2 && f !== form.funcao_3)}
+                options={funcoes.filter((f) => f !== form.funcao_2 && f !== form.funcao_3)}
                 placeholder="Buscar função..."
               />
             </div>
@@ -470,7 +472,7 @@ export default function RegisterPrestadorPage() {
               <SearchableSelect
                 value={form.funcao_2}
                 onChange={(v) => updateForm('funcao_2', v)}
-                options={FUNCOES_DISPONIVEIS.filter((f) => f !== form.funcao_principal && f !== form.funcao_3)}
+                options={funcoes.filter((f) => f !== form.funcao_principal && f !== form.funcao_3)}
                 placeholder="Opcional"
               />
             </div>
@@ -479,7 +481,7 @@ export default function RegisterPrestadorPage() {
               <SearchableSelect
                 value={form.funcao_3}
                 onChange={(v) => updateForm('funcao_3', v)}
-                options={FUNCOES_DISPONIVEIS.filter((f) => f !== form.funcao_principal && f !== form.funcao_2)}
+                options={funcoes.filter((f) => f !== form.funcao_principal && f !== form.funcao_2)}
                 placeholder="Opcional"
               />
             </div>

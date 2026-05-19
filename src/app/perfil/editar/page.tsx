@@ -9,7 +9,8 @@ import BottomNav from '@/components/bottom-nav';
 import AuthProvider from '@/components/auth-provider';
 import { Loader2, Save, Camera, User as UserIcon, PlusCircle } from 'lucide-react';
 import { uploadImage } from '@/lib/supabase';
-import { FUNCOES_DISPONIVEIS, ESTADOS_BR } from '@/lib/types';
+import { ESTADOS_BR } from '@/lib/types';
+import { useFuncoes } from '@/hooks/useFuncoes';
 import SearchableSelect from '@/components/searchable-select';
 import SolicitarFuncaoModal from '@/components/solicitar-funcao-modal';
 import type { User, PrestadorPerfil, ContratantePerfil } from '@/lib/types';
@@ -17,6 +18,7 @@ import { maskPhone, maskCEP } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 export default function EditarPerfilPage() {
+  const { funcoes } = useFuncoes();
   const router = useRouter();
   const { user, prestadorPerfil, contratantePerfil, setUser, setPrestadorPerfil, setContratantePerfil, loading: authLoading } = useAppStore();
   const [salvando, setSalvando] = useState(false);
@@ -291,7 +293,7 @@ export default function EditarPerfilPage() {
                   <SearchableSelect
                     value={funcaoPrincipal}
                     onChange={setFuncaoPrincipal}
-                    options={FUNCOES_DISPONIVEIS.filter((f) => f !== funcao2 && f !== funcao3)}
+                    options={funcoes.filter((f) => f !== funcao2 && f !== funcao3)}
                     placeholder="Buscar função..."
                   />
                 </div>
@@ -300,7 +302,7 @@ export default function EditarPerfilPage() {
                   <SearchableSelect
                     value={funcao2}
                     onChange={setFuncao2}
-                    options={FUNCOES_DISPONIVEIS.filter((f) => f !== funcaoPrincipal && f !== funcao3)}
+                    options={funcoes.filter((f) => f !== funcaoPrincipal && f !== funcao3)}
                     placeholder="Opcional"
                   />
                 </div>
@@ -309,7 +311,7 @@ export default function EditarPerfilPage() {
                   <SearchableSelect
                     value={funcao3}
                     onChange={setFuncao3}
-                    options={FUNCOES_DISPONIVEIS.filter((f) => f !== funcaoPrincipal && f !== funcao2)}
+                    options={funcoes.filter((f) => f !== funcaoPrincipal && f !== funcao2)}
                     placeholder="Opcional"
                   />
                 </div>
