@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
         .select('id')
         .eq('vaga_id', vaga_id)
         .eq('prestador_id', prestador_id)
+        .not('status', 'in', '("recusado","cancelado")')
         .maybeSingle();
 
       if (existing) {
@@ -97,6 +98,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'aceitar' || action === 'recusar') {
+      // Captura status atual antes de alterar (necessário para saber se precisa decrementar)
+      let statusAnterior: string | null = null;
+      if (action === 'recusar') {
+        const { data: matchAtual } = await getSupabaseAdmin()
+          .from('matches')
+          .select('status')
+          .eq('vaga_id', vaga_id)
+          .eq('prestador_id', prestador_id)
+          .maybeSingle();
+        statusAnterior = matchAtual?.status || null;
+      }
+
       const status = action === 'aceitar' ? 'aceito' : 'recusado';
       const updateData: Record<string, unknown> = { status };
 
@@ -117,6 +130,19 @@ export async function POST(request: NextRequest) {
 
       if (action === 'aceitar') {
         await getSupabaseAdmin().rpc('incrementar_vagas_preenchidas', { p_vaga_id: vaga_id });
+      } else if (action === 'recusar' && statusAnterior === 'aceito') {
+        // Prestador recusou após aceite do contratante → devolve a vaga para o pool
+        const { data: vagaAtual } = await getSupabaseAdmin()
+          .from('vagas')
+          .select('vagas_preenchidas')
+          .eq('id', vaga_id)
+          .single();
+        if (vagaAtual && vagaAtual.vagas_preenchidas > 0) {
+          await getSupabaseAdmin()
+            .from('vagas')
+            .update({ vagas_preenchidas: vagaAtual.vagas_preenchidas - 1 })
+            .eq('id', vaga_id);
+        }
       }
 
       // Notificar prestador sobre aceite/recusa

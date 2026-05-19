@@ -39,6 +39,7 @@ export default function VagaDetailPage() {
       .select('id')
       .eq('vaga_id', vagaId)
       .eq('prestador_id', prestadorPerfil.id)
+      .not('status', 'in', '("recusado","cancelado")')
       .maybeSingle();
     if (data) setJaEnviou(true);
   };
