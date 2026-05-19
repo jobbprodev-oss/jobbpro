@@ -37,8 +37,15 @@ export async function POST(request: NextRequest) {
     if (action === 'emailExists') {
       const normalized = email?.trim().toLowerCase();
       if (!normalized) return NextResponse.json({ exists: false });
-      const { data } = await admin.from('users').select('id').eq('email', normalized).maybeSingle();
-      return NextResponse.json({ exists: !!data });
+      // Verifica tabela pública
+      const { data: publicRow } = await admin.from('users').select('id').eq('email', normalized).maybeSingle();
+      if (publicRow) return NextResponse.json({ exists: true });
+      // Verifica Supabase Auth (detecta cadastros parciais anteriores)
+      try {
+        const { data: authRow } = await (admin as any).schema('auth').from('users').select('id').eq('email', normalized).maybeSingle();
+        if (authRow) return NextResponse.json({ exists: true });
+      } catch {}
+      return NextResponse.json({ exists: false });
     }
 
     if (action === 'list') {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Camera, Loader2, CheckCircle2, Upload, PlusCircle, QrCode, Copy, Clock } from 'lucide-react';
@@ -28,6 +28,8 @@ export default function RegisterPrestadorPage() {
   const [pixLoading, setPixLoading] = useState(false);
   const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
   const [checkingEmail, setCheckingEmail] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const submittingRef = useRef(false);
 
   const buscarCep = async (cep: string) => {
     const cepLimpo = cep.replace(/\D/g, '');
@@ -165,6 +167,18 @@ export default function RegisterPrestadorPage() {
   const gerarPixCadastro = async () => {
     setPixLoading(true);
     try {
+      // Verificar email antes de gerar o PIX (evita cobrança sem cadastro)
+      const checkRes = await fetch('/api/users/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'emailExists', email: form.email.trim().toLowerCase() }),
+      });
+      const checkData = await checkRes.json();
+      if (checkData.exists) {
+        toast.error('Este e-mail já está cadastrado. Faça login ou use outro e-mail.');
+        return;
+      }
+
       const res = await fetch('/api/pagamentos/cadastro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -180,12 +194,13 @@ export default function RegisterPrestadorPage() {
       if (!res.ok) throw new Error(data.error);
       setPixData(data);
       // Iniciar polling
-      const interval = setInterval(async () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = setInterval(async () => {
         try {
           const statusRes = await fetch(`/api/pagamentos/cadastro?payment_id=${data.asaas_payment_id}`);
           const statusData = await statusRes.json();
           if (statusData.status === 'CONFIRMED') {
-            clearInterval(interval);
+            if (intervalRef.current) clearInterval(intervalRef.current);
             setPagamentoConfirmado(true);
           }
         } catch {}
@@ -202,6 +217,9 @@ export default function RegisterPrestadorPage() {
       toast.error('Aguarde a confirmação do pagamento');
       return;
     }
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     setLoading(true);
 
     try {
@@ -319,9 +337,19 @@ export default function RegisterPrestadorPage() {
       toast.success('Cadastro realizado com sucesso!');
       router.push('/dashboard/prestador');
     } catch (err: any) {
-      toast.error(err.message || 'Erro no cadastro');
+      const msg: string = err.message || '';
+      if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
+        toast.error('E-mail já cadastrado com outra senha. Faça login ou redefina sua senha.');
+      } else if (msg.includes('already registered') || msg.includes('already been registered')) {
+        toast.error('E-mail já cadastrado. Faça login para acessar sua conta.');
+      } else if (msg.includes('Password should be')) {
+        toast.error('A senha deve ter pelo menos 6 caracteres.');
+      } else {
+        toast.error('Erro ao finalizar o cadastro. Entre em contato com o suporte.');
+      }
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 
