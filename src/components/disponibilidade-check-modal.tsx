@@ -51,14 +51,14 @@ export default function DisponibilidadeCheckModal({
         return;
       }
 
-      // Buscar disponibilidade do prestador no dia atual
-      const hoje = new Date().toISOString().split('T')[0];
+      // Buscar disponibilidade ativa (ainda não expirada)
+      const agora = new Date().toISOString();
       const { data: dispData, error } = await supabase
         .from('disponibilidades')
         .select('*')
         .eq('prestador_id', perfil.id)
-        .eq('data', hoje)
-        .eq('disponivel', true);
+        .eq('disponivel', true)
+        .gt('expires_at', agora);
 
       if (error) throw error;
 
@@ -124,7 +124,7 @@ export default function DisponibilidadeCheckModal({
                 <div>
                   <p className="font-medium text-amber-900">Sem disponibilidade</p>
                   <p className="text-sm text-amber-700">
-                    Você não possui disponibilidade cadastrada para hoje.
+                    Você não possui disponibilidade ativa no momento.
                   </p>
                 </div>
               </div>
