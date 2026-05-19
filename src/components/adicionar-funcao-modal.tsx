@@ -26,6 +26,7 @@ export default function AdicionarFuncaoModal({ open, onClose }: AdicionarFuncaoM
   const [verificando, setVerificando] = useState(false);
   const [valorFuncao, setValorFuncao] = useState<number>(9.90);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const { funcoes } = useFuncoes();
 
   // Reset ao fechar + buscar plano
   useEffect(() => {
@@ -83,7 +84,6 @@ export default function AdicionarFuncaoModal({ open, onClose }: AdicionarFuncaoM
   ].filter(Boolean);
 
   const slot = !prestadorPerfil.funcao_2 ? 'funcao_2' : !prestadorPerfil.funcao_3 ? 'funcao_3' : null;
-  const { funcoes } = useFuncoes();
   const todasPreenchidas = !slot;
   const temSlotExtra = !prestadorPerfil.funcao_4 || !prestadorPerfil.funcao_5 || !prestadorPerfil.funcao_6;
 
