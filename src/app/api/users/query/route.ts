@@ -113,6 +113,20 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ data, error: error?.message });
     }
 
+    if (action === 'upsertPrestadorPerfil' && record) {
+      const { data, error } = await admin
+        .from('prestador_perfil')
+        .upsert(record, { onConflict: 'user_id' });
+      return NextResponse.json({ data, error: error?.message });
+    }
+
+    if (action === 'upsertContratantePerfil' && record) {
+      const { data, error } = await admin
+        .from('contratante_perfil')
+        .upsert(record, { onConflict: 'user_id' });
+      return NextResponse.json({ data, error: error?.message });
+    }
+
     if (action === 'update' && record && userId) {
       const { data, error } = await admin
         .from('users')

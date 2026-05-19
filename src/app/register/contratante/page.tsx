@@ -201,9 +201,13 @@ export default function RegisterContratantePage() {
       } else if (authError) {
         throw authError;
       } else if (!authData.user) {
-        throw new Error('Erro ao criar conta');
+        throw new Error('Erro ao criar conta. Verifique os dados e tente novamente.');
       } else {
         userId = authData.user.id;
+        // Garantir sessão ativa para operações subsequentes
+        if (!authData.session) {
+          await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.senha });
+        }
       }
 
       const upsertRes = await fetch('/api/users/query', {
@@ -235,11 +239,16 @@ export default function RegisterContratantePage() {
       const { error: userError } = await upsertRes.json();
       if (userError) throw new Error(userError);
 
-      const { error: perfilError } = await supabase.from('contratante_perfil').upsert({
-        user_id: userId,
-        nome_empresa: form.nome_empresa || null,
-      }, { onConflict: 'user_id' });
-      if (perfilError) throw perfilError;
+      const perfilRes = await fetch('/api/users/query', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'upsertContratantePerfil',
+          record: { user_id: userId, nome_empresa: form.nome_empresa || null },
+        }),
+      });
+      const { error: perfilError } = await perfilRes.json();
+      if (perfilError) throw new Error(perfilError);
 
       // Vincular plano ao usuário
       if (pixData?.plano_id) {
@@ -264,14 +273,15 @@ export default function RegisterContratantePage() {
       router.push('/dashboard/contratante');
     } catch (err: any) {
       const msg: string = err.message || '';
+      console.error('[handleSubmit contratante]', msg);
       if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
         toast.error('E-mail já cadastrado com outra senha. Faça login ou redefina sua senha.');
-      } else if (msg.includes('already registered') || msg.includes('already been registered')) {
+      } else if (msg.includes('already registered') || msg.includes('already been registered') || msg.includes('Email already exists')) {
         toast.error('E-mail já cadastrado. Faça login para acessar sua conta.');
       } else if (msg.includes('Password should be')) {
         toast.error('A senha deve ter pelo menos 6 caracteres.');
       } else {
-        toast.error('Erro ao finalizar o cadastro. Entre em contato com o suporte.');
+        toast.error(msg || 'Erro ao finalizar o cadastro. Tente novamente.');
       }
     } finally {
       setLoading(false);

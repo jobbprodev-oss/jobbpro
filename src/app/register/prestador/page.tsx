@@ -241,9 +241,13 @@ export default function RegisterPrestadorPage() {
       } else if (authError) {
         throw authError;
       } else if (!authData.user) {
-        throw new Error('Erro ao criar conta');
+        throw new Error('Erro ao criar conta. Verifique os dados e tente novamente.');
       } else {
         userId = authData.user.id;
+        // Garantir sessão ativa para operações subsequentes
+        if (!authData.session) {
+          await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.senha });
+        }
       }
 
       let fotoUrl = null;
@@ -289,17 +293,25 @@ export default function RegisterPrestadorPage() {
       const { error: userError } = await upsertRes.json();
       if (userError) throw new Error(userError);
 
-      const { error: perfilError } = await supabase.from('prestador_perfil').upsert({
-        user_id: userId,
-        funcao_principal: form.funcao_principal,
-        funcao_2: form.funcao_2 || null,
-        funcao_3: form.funcao_3 || null,
-        valor_pretendido: form.valor_pretendido ? parseFloat(form.valor_pretendido) : null,
-        vestimenta: form.vestimenta,
-        aceita_negociacao: form.aceita_negociacao,
-        descricao: form.descricao,
-      }, { onConflict: 'user_id' });
-      if (perfilError) throw perfilError;
+      const perfilRes = await fetch('/api/users/query', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'upsertPrestadorPerfil',
+          record: {
+            user_id: userId,
+            funcao_principal: form.funcao_principal,
+            funcao_2: form.funcao_2 || null,
+            funcao_3: form.funcao_3 || null,
+            valor_pretendido: form.valor_pretendido ? parseFloat(form.valor_pretendido) : null,
+            vestimenta: form.vestimenta,
+            aceita_negociacao: form.aceita_negociacao,
+            descricao: form.descricao,
+          },
+        }),
+      });
+      const { error: perfilError } = await perfilRes.json();
+      if (perfilError) throw new Error(perfilError);
 
       // Se solicitou função customizada, enviar após registro (agora autenticado)
       if (funcaoCustom.trim()) {
@@ -338,14 +350,15 @@ export default function RegisterPrestadorPage() {
       router.push('/dashboard/prestador');
     } catch (err: any) {
       const msg: string = err.message || '';
+      console.error('[handleSubmit prestador]', msg);
       if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
         toast.error('E-mail já cadastrado com outra senha. Faça login ou redefina sua senha.');
-      } else if (msg.includes('already registered') || msg.includes('already been registered')) {
+      } else if (msg.includes('already registered') || msg.includes('already been registered') || msg.includes('Email already exists')) {
         toast.error('E-mail já cadastrado. Faça login para acessar sua conta.');
       } else if (msg.includes('Password should be')) {
         toast.error('A senha deve ter pelo menos 6 caracteres.');
       } else {
-        toast.error('Erro ao finalizar o cadastro. Entre em contato com o suporte.');
+        toast.error(msg || 'Erro ao finalizar o cadastro. Tente novamente.');
       }
     } finally {
       setLoading(false);
