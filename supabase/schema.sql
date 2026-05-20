@@ -22,7 +22,7 @@ CREATE TABLE users (
   cpf_cnpj TEXT NOT NULL,
   rg TEXT,
   data_nascimento DATE,
-  celular TEXT NOT NULL UNIQUE,
+  celular TEXT NOT NULL,
   email TEXT,
   cep TEXT,
   endereco TEXT,
