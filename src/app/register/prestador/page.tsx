@@ -645,7 +645,7 @@ export default function RegisterPrestadorPage() {
               </div>
             )}
 
-            {pixData && !pagamentoConfirmado && (
+            {pixData && !pagamentoConfirmado && !finalizando && (
               <div className="space-y-4">
                 <div className="text-center">
                   <p className="text-sm text-gray-500 mb-1">{pixData.plano_nome}</p>
