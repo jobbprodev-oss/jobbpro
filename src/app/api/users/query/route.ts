@@ -13,7 +13,7 @@ function getAdmin() {
 // Query genérica na tabela users via service_role (bypass RLS)
 export async function POST(request: NextRequest) {
   try {
-    const { action, userId, email, filters } = await request.json();
+    const { action, userId, email, cpf, celular, tipo, filters } = await request.json();
     const admin = getAdmin();
 
     if (action === 'getById') {
@@ -46,6 +46,20 @@ export async function POST(request: NextRequest) {
         if (authRow) return NextResponse.json({ exists: true });
       } catch {}
       return NextResponse.json({ exists: false });
+    }
+
+    if (action === 'cpfExists') {
+      const cpfLimpo = cpf?.replace(/\D/g, '');
+      if (!cpfLimpo || !tipo) return NextResponse.json({ exists: false });
+      const { data } = await admin.from('users').select('id').eq('cpf_cnpj', cpfLimpo).eq('tipo', tipo).maybeSingle();
+      return NextResponse.json({ exists: !!data });
+    }
+
+    if (action === 'celularExists') {
+      const celularLimpo = celular?.replace(/\D/g, '');
+      if (!celularLimpo || !tipo) return NextResponse.json({ exists: false });
+      const { data } = await admin.from('users').select('id').eq('celular', celularLimpo).eq('tipo', tipo).maybeSingle();
+      return NextResponse.json({ exists: !!data });
     }
 
     if (action === 'list') {

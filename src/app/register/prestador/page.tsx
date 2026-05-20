@@ -291,18 +291,39 @@ export default function RegisterPrestadorPage() {
     if (step === 4) {
       setCheckingEmail(true);
       try {
-        const res = await fetch('/api/users/query', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'emailExists', email: form.email.trim().toLowerCase() }),
-        });
-        const emailData = await res.json();
+        const [emailRes, cpfRes, celularRes] = await Promise.all([
+          fetch('/api/users/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'emailExists', email: form.email.trim().toLowerCase() }),
+          }),
+          fetch('/api/users/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'cpfExists', cpf: form.cpf, tipo: 'prestador' }),
+          }),
+          fetch('/api/users/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'celularExists', celular: form.celular, tipo: 'prestador' }),
+          }),
+        ]);
+        const [emailData, cpfData, celularData] = await Promise.all([
+          emailRes.json(), cpfRes.json(), celularRes.json(),
+        ]);
         if (emailData.exists) {
           toast.error('Este e-mail já está cadastrado. Utilize outro e-mail ou faça login.');
           return;
         }
-      } catch {}
-      finally { setCheckingEmail(false); }
+        if (cpfData.exists) {
+          toast.error('Este CPF já está cadastrado para este tipo de conta.');
+          return;
+        }
+        if (celularData.exists) {
+          toast.error('Este celular já está cadastrado para este tipo de conta.');
+          return;
+        }
+      } catch {} finally { setCheckingEmail(false); }
       setStep(5);
       return;
     }
