@@ -40,15 +40,16 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'criar') {
-      const { data: existing } = await getSupabaseAdmin()
+      // Verificar se já existe qualquer match (independente do status)
+      const { data: anyExisting } = await getSupabaseAdmin()
         .from('matches')
-        .select('id')
+        .select('id, status')
         .eq('vaga_id', vaga_id)
         .eq('prestador_id', prestador_id)
-        .not('status', 'in', '("recusado","cancelado")')
         .maybeSingle();
 
-      if (existing) {
+      // Se existe um match ativo (não cancelado/recusado), bloquear
+      if (anyExisting && !['recusado', 'cancelado'].includes(anyExisting.status)) {
         return NextResponse.json({ error: 'Match já existe' }, { status: 409 });
       }
 
@@ -62,13 +63,27 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Vaga não encontrada' }, { status: 404 });
       }
 
-      const { data, error } = await getSupabaseAdmin().from('matches').insert({
-        vaga_id,
-        prestador_id,
-        contratante_id: vaga.contratante_id,
-        status: 'pendente',
-        match_score: body.match_score || 0,
-      }).select().single();
+      let data: any;
+      let error: any;
+
+      if (anyExisting) {
+        // Reativar match cancelado/recusado via UPDATE (evita violar unique constraint)
+        ({ data, error } = await getSupabaseAdmin()
+          .from('matches')
+          .update({ status: 'pendente', match_score: body.match_score || 0, data_aceite: null, valor_acordado: null })
+          .eq('id', anyExisting.id)
+          .select()
+          .single());
+      } else {
+        // Criar novo match
+        ({ data, error } = await getSupabaseAdmin().from('matches').insert({
+          vaga_id,
+          prestador_id,
+          contratante_id: vaga.contratante_id,
+          status: 'pendente',
+          match_score: body.match_score || 0,
+        }).select().single());
+      }
 
       if (error) throw error;
 
