@@ -53,7 +53,7 @@ export default function DisponibilidadePage() {
   const formatExpiry = (d: Disponibilidade) => {
     if (!d.expires_at) return null;
     const exp = new Date(d.expires_at);
-    return exp.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return exp.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   const adicionarDisponibilidade = () => {
@@ -152,7 +152,9 @@ export default function DisponibilidadePage() {
                             : <Calendar className="w-5 h-5 text-brand-600" />}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900 text-sm">{formatDate(d.data)}</p>
+                          <p className="font-medium text-gray-900 text-sm">
+                            {formatDate(d.data)} às {d.horario_inicio}
+                          </p>
                           {expirada ? (
                             <p className="text-xs text-red-500 font-medium">Expirada</p>
                           ) : expiry ? (
@@ -179,11 +181,9 @@ export default function DisponibilidadePage() {
         <DisponibilidadePagamentoModal
           isOpen={showPagamentoModal}
           onClose={() => setShowPagamentoModal(false)}
-          data={novaData}
-          horario_inicio="00:00"
-          horario_fim="23:59"
           onSuccess={() => {
             setShowForm(false);
+            setShowPagamentoModal(false);
             fetchDisponibilidades();
           }}
         />

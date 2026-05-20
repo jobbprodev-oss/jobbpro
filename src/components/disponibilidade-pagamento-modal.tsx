@@ -9,18 +9,12 @@ import type { Plano } from '@/lib/types';
 interface DisponibilidadePagamentoModalProps {
   isOpen: boolean;
   onClose: () => void;
-  data: string;
-  horario_inicio: string;
-  horario_fim: string;
   onSuccess: () => void;
 }
 
 export default function DisponibilidadePagamentoModal({
   isOpen,
   onClose,
-  data,
-  horario_inicio,
-  horario_fim,
   onSuccess,
 }: DisponibilidadePagamentoModalProps) {
   const [planos, setPlanos] = useState<Plano[]>([]);
@@ -34,6 +28,7 @@ export default function DisponibilidadePagamentoModal({
   } | null>(null);
   const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
   const [verificandoStatus, setVerificandoStatus] = useState(false);
+  const [validadeInfo, setValidadeInfo] = useState<{ inicio: string; fim: string } | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -79,7 +74,7 @@ export default function DisponibilidadePagamentoModal({
         },
         body: JSON.stringify({
           plano_id: planoSelecionado.id,
-          descricao: `Disponibilidade ${data} ${horario_inicio}-${horario_fim}`,
+          descricao: `Disponibilidade ${planoSelecionado.duracao_horas ?? 24}h`,
         }),
       });
 
@@ -149,21 +144,31 @@ export default function DisponibilidadePagamentoModal({
 
       const duracaoHoras = planoSelecionado?.duracao_horas ?? 24;
       const agora = new Date();
-      const expiresAt = new Date(agora.getTime() + duracaoHoras * 60 * 60 * 1000).toISOString();
+      const fimDate = new Date(agora.getTime() + duracaoHoras * 60 * 60 * 1000);
+
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const dataStr = agora.toISOString().split('T')[0];
+      const inicioStr = `${pad(agora.getHours())}:${pad(agora.getMinutes())}`;
+      const fimStr = `${pad(fimDate.getHours())}:${pad(fimDate.getMinutes())}`;
+      const expiresAt = fimDate.toISOString();
 
       const { error: insertError } = await supabase.from('disponibilidades').insert({
         prestador_id: perfil.id,
-        data,
-        horario_inicio,
-        horario_fim,
+        data: dataStr,
+        horario_inicio: inicioStr,
+        horario_fim: fimStr,
         disponivel: true,
         plano_id: planoSelecionado?.id ?? null,
         expires_at: expiresAt,
       });
 
       if (insertError) throw insertError;
+
+      const fmtDT = (d: Date) =>
+        `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} às ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      setValidadeInfo({ inicio: fmtDT(agora), fim: fmtDT(fimDate) });
+
       onSuccess();
-      onClose();
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar disponibilidade');
     }
@@ -183,10 +188,8 @@ export default function DisponibilidadePagamentoModal({
 
         <div className="p-4 space-y-4">
           <div className="text-center">
-            <p className="text-sm text-gray-500">Data e horário</p>
-            <p className="font-medium text-gray-900">
-              {new Date(data + 'T00:00:00').toLocaleDateString('pt-BR')} • {horario_inicio} - {horario_fim}
-            </p>
+            <p className="text-sm text-gray-500">Validade da disponibilidade</p>
+            <p className="text-xs text-gray-400">Inicia no momento da confirmação do pagamento</p>
           </div>
 
           {!planoSelecionado && !pixData && (
@@ -304,7 +307,16 @@ export default function DisponibilidadePagamentoModal({
                 <CheckCircle2 className="w-8 h-8 text-emerald-600" />
               </div>
               <h3 className="text-lg font-bold text-gray-900">Pagamento confirmado!</h3>
-              <p className="text-sm text-gray-500">Sua disponibilidade foi cadastrada com sucesso.</p>
+              {validadeInfo ? (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800">
+                  <p className="font-medium">Disponibilidade ativa</p>
+                  <p className="mt-1">De {validadeInfo.inicio}</p>
+                  <p>Até {validadeInfo.fim}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">Sua disponibilidade foi cadastrada com sucesso.</p>
+              )}
+              <button onClick={onClose} className="btn-primary w-full">Fechar</button>
             </div>
           )}
         </div>
