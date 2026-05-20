@@ -27,9 +27,12 @@ export default function RegisterPrestadorPage() {
   const [pixData, setPixData] = useState<{ asaas_payment_id: string; qr_code: string; copia_cola: string; valor: number; plano_id: string; plano_nome: string; duracao_dias: number } | null>(null);
   const [pixLoading, setPixLoading] = useState(false);
   const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
-  const [registeredUserId, setRegisteredUserId] = useState<string | null>(null);
+  const [planoConfirmado, setPlanoConfirmado] = useState<{ plano_id: string; duracao_dias: number } | null>(null);
+  const [finalizando, setFinalizando] = useState(false);
+  const [erroFinalizacao, setErroFinalizacao] = useState<string | null>(null);
   const [checkingEmail, setCheckingEmail] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const finalizingRef = useRef(false);
 
   const buscarCep = async (cep: string) => {
     const cepLimpo = cep.replace(/\D/g, '');
@@ -136,103 +139,130 @@ export default function RegisterPrestadorPage() {
     }
   };
 
-  const registerUser = async (): Promise<string> => {
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: form.email.trim().toLowerCase(),
-      password: form.senha,
-    });
-
-    let userId: string;
-    if (authError && (authError.message?.includes('already registered') || authError.message?.includes('Email already exists'))) {
-      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-        email: form.email.trim(),
+  const finalizeAfterPayment = async (plano_id: string, duracao_dias: number) => {
+    if (finalizingRef.current) return;
+    finalizingRef.current = true;
+    setFinalizando(true);
+    setErroFinalizacao(null);
+    try {
+      let userId: string;
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: form.email.trim().toLowerCase(),
         password: form.senha,
       });
-      if (loginError) throw loginError;
-      userId = loginData.user!.id;
-    } else if (authError) {
-      throw authError;
-    } else if (!authData.user) {
-      throw new Error('Erro ao criar conta. Verifique os dados e tente novamente.');
-    } else {
-      userId = authData.user.id;
-      if (!authData.session) {
-        await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.senha });
-      }
-    }
-
-    let fotoUrl = null;
-    let docUrl = null;
-    if (fotoFile) fotoUrl = await uploadImage(fotoFile, 'avatars', userId);
-    if (docFile) docUrl = await uploadImage(docFile, 'documentos', userId);
-
-    const upsertRes = await fetch('/api/users/query', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'upsert',
-        record: {
-          id: userId,
-          tipo: 'prestador',
-          nome: form.nome,
-          cpf_cnpj: form.cpf.replace(/\D/g, ''),
-          rg: form.rg,
-          data_nascimento: form.data_nascimento || null,
-          celular: form.celular.replace(/\D/g, ''),
-          email: form.email.trim().toLowerCase(),
-          cep: form.cep,
-          endereco: form.endereco,
-          numero: form.numero,
-          complemento: form.complemento,
-          bairro: form.bairro,
-          cidade: form.cidade,
-          estado: form.estado,
-          foto_url: fotoUrl,
-          foto_documento_url: docUrl,
-          indicacao: form.indicacao,
-          indicacao_nome: form.indicacao ? form.indicacao_nome : null,
-          indicacao_telefone: form.indicacao ? form.indicacao_telefone.replace(/\D/g, '') : null,
-          termo_aceite: form.termo_aceite,
-        },
-      }),
-    });
-    const { error: userError } = await upsertRes.json();
-    if (userError) throw new Error(userError);
-
-    const perfilRes = await fetch('/api/users/query', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'upsertPrestadorPerfil',
-        record: {
-          user_id: userId,
-          funcao_principal: form.funcao_principal,
-          funcao_2: form.funcao_2 || null,
-          funcao_3: form.funcao_3 || null,
-          valor_pretendido: form.valor_pretendido ? parseFloat(form.valor_pretendido) : null,
-          vestimenta: form.vestimenta,
-          aceita_negociacao: form.aceita_negociacao,
-          descricao: form.descricao,
-        },
-      }),
-    });
-    const { error: perfilError } = await perfilRes.json();
-    if (perfilError) throw new Error(perfilError);
-
-    if (funcaoCustom.trim()) {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          await fetch('/api/funcoes/solicitar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-            body: JSON.stringify({ nome_funcao: funcaoCustom.trim() }),
-          });
+      if (authError && (authError.message?.includes('already registered') || authError.message?.includes('Email already exists'))) {
+        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+          email: form.email.trim(),
+          password: form.senha,
+        });
+        if (loginError) throw loginError;
+        userId = loginData.user!.id;
+      } else if (authError) {
+        throw authError;
+      } else if (!authData.user) {
+        throw new Error('Erro ao criar conta. Verifique os dados e tente novamente.');
+      } else {
+        userId = authData.user.id;
+        if (!authData.session) {
+          await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.senha });
         }
-      } catch {}
-    }
+      }
 
-    return userId;
+      let fotoUrl = null;
+      let docUrl = null;
+      if (fotoFile) fotoUrl = await uploadImage(fotoFile, 'avatars', userId);
+      if (docFile) docUrl = await uploadImage(docFile, 'documentos', userId);
+
+      const upsertRes = await fetch('/api/users/query', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'upsert',
+          record: {
+            id: userId,
+            tipo: 'prestador',
+            nome: form.nome,
+            cpf_cnpj: form.cpf.replace(/\D/g, ''),
+            rg: form.rg,
+            data_nascimento: form.data_nascimento || null,
+            celular: form.celular.replace(/\D/g, ''),
+            email: form.email.trim().toLowerCase(),
+            cep: form.cep,
+            endereco: form.endereco,
+            numero: form.numero,
+            complemento: form.complemento,
+            bairro: form.bairro,
+            cidade: form.cidade,
+            estado: form.estado,
+            foto_url: fotoUrl,
+            foto_documento_url: docUrl,
+            indicacao: form.indicacao,
+            indicacao_nome: form.indicacao ? form.indicacao_nome : null,
+            indicacao_telefone: form.indicacao ? form.indicacao_telefone.replace(/\D/g, '') : null,
+            termo_aceite: form.termo_aceite,
+          },
+        }),
+      });
+      const { error: userError } = await upsertRes.json();
+      if (userError) throw new Error(userError);
+
+      const perfilRes = await fetch('/api/users/query', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'upsertPrestadorPerfil',
+          record: {
+            user_id: userId,
+            funcao_principal: form.funcao_principal,
+            funcao_2: form.funcao_2 || null,
+            funcao_3: form.funcao_3 || null,
+            valor_pretendido: form.valor_pretendido ? parseFloat(form.valor_pretendido) : null,
+            vestimenta: form.vestimenta,
+            aceita_negociacao: form.aceita_negociacao,
+            descricao: form.descricao,
+          },
+        }),
+      });
+      const { error: perfilError } = await perfilRes.json();
+      if (perfilError) throw new Error(perfilError);
+
+      if (funcaoCustom.trim()) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            await fetch('/api/funcoes/solicitar', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+              body: JSON.stringify({ nome_funcao: funcaoCustom.trim() }),
+            });
+          }
+        } catch {}
+      }
+
+      if (plano_id) {
+        const expira = new Date();
+        expira.setDate(expira.getDate() + (duracao_dias || 365));
+        await fetch('/api/users/query', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update',
+            userId,
+            record: { plano_id, plano_ativo: true, plano_expira_em: expira.toISOString() },
+          }),
+        });
+      }
+
+      toast.success('Cadastro realizado com sucesso! Bem-vindo ao JOBBPRO!');
+      router.push('/dashboard/prestador');
+    } catch (err: any) {
+      const msg: string = err.message || '';
+      console.error('[finalizeAfterPayment prestador]', msg);
+      setErroFinalizacao(msg || 'Erro ao finalizar o cadastro. Tente novamente.');
+    } finally {
+      setFinalizando(false);
+      finalizingRef.current = false;
+    }
   };
 
   const nextStep = async () => {
@@ -259,26 +289,21 @@ export default function RegisterPrestadorPage() {
     }
 
     if (step === 4) {
-      setLoading(true);
+      setCheckingEmail(true);
       try {
-        const uid = await registerUser();
-        setRegisteredUserId(uid);
-        setStep(5);
-      } catch (err: any) {
-        const msg: string = err.message || '';
-        console.error('[registerUser prestador]', msg);
-        if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
-          toast.error('E-mail já cadastrado com outra senha. Faça login ou redefina sua senha.');
-        } else if (msg.includes('already registered') || msg.includes('Email already exists')) {
-          toast.error('E-mail já cadastrado. Faça login para acessar sua conta.');
-        } else if (msg.includes('Password should be')) {
-          toast.error('A senha deve ter pelo menos 6 caracteres.');
-        } else {
-          toast.error(msg || 'Erro ao criar cadastro. Tente novamente.');
+        const res = await fetch('/api/users/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'emailExists', email: form.email.trim().toLowerCase() }),
+        });
+        const emailData = await res.json();
+        if (emailData.exists) {
+          toast.error('Este e-mail já está cadastrado. Utilize outro e-mail ou faça login.');
+          return;
         }
-      } finally {
-        setLoading(false);
-      }
+      } catch {}
+      finally { setCheckingEmail(false); }
+      setStep(5);
       return;
     }
 
@@ -288,10 +313,6 @@ export default function RegisterPrestadorPage() {
   const prevStep = () => setStep((s) => Math.max(s - 1, 1) as Step);
 
   const gerarPixCadastro = async () => {
-    if (!registeredUserId) {
-      toast.error('Erro inesperado. Reinicie o cadastro e tente novamente.');
-      return;
-    }
     setPixLoading(true);
     try {
       const res = await fetch('/api/pagamentos/cadastro', {
@@ -316,21 +337,8 @@ export default function RegisterPrestadorPage() {
           const statusData = await statusRes.json();
           if (statusData.status === 'CONFIRMED') {
             if (intervalRef.current) clearInterval(intervalRef.current);
-            if (data.plano_id) {
-              const expira = new Date();
-              expira.setDate(expira.getDate() + (data.duracao_dias || 365));
-              await fetch('/api/users/query', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  action: 'update',
-                  userId: registeredUserId,
-                  record: { plano_id: data.plano_id, plano_ativo: true, plano_expira_em: expira.toISOString() },
-                }),
-              });
-            }
-            toast.success('Pagamento confirmado! Bem-vindo ao JOBBPRO!');
-            router.push('/dashboard/prestador');
+            setPlanoConfirmado({ plano_id: data.plano_id, duracao_dias: data.duracao_dias });
+            await finalizeAfterPayment(data.plano_id, data.duracao_dias);
           }
         } catch {}
       }, 5000);
@@ -601,7 +609,7 @@ export default function RegisterPrestadorPage() {
             {!pixData && !pixLoading && (
               <div className="card p-4 space-y-4">
                 <p className="text-sm text-gray-600">
-                  Cadastro criado! Agora ative seu plano via PIX para ter acesso completo.
+                  Realize o pagamento via PIX para concluir seu cadastro e ativar o acesso.
                 </p>
                 <button onClick={gerarPixCadastro} className="btn-primary w-full flex items-center justify-center gap-2">
                   <QrCode className="w-5 h-5" /> Gerar PIX para pagamento
@@ -648,7 +656,28 @@ export default function RegisterPrestadorPage() {
               </div>
             )}
 
-            {pagamentoConfirmado && (
+            {finalizando && (
+              <div className="flex flex-col items-center py-8 gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
+                <p className="text-sm text-gray-500">Finalizando seu cadastro...</p>
+              </div>
+            )}
+
+            {erroFinalizacao && !finalizando && (
+              <div className="card p-4 space-y-3 border border-red-200 bg-red-50">
+                <p className="text-sm font-medium text-red-700">Pagamento confirmado, mas ocorreu um erro ao criar sua conta:</p>
+                <p className="text-xs text-red-600">{erroFinalizacao}</p>
+                <p className="text-xs text-gray-500">Seu pagamento foi recebido. Clique abaixo para tentar novamente.</p>
+                <button
+                  onClick={() => planoConfirmado && finalizeAfterPayment(planoConfirmado.plano_id, planoConfirmado.duracao_dias)}
+                  className="btn-primary w-full"
+                >
+                  Tentar novamente
+                </button>
+              </div>
+            )}
+
+            {pagamentoConfirmado && !erroFinalizacao && !finalizando && (
               <div className="text-center space-y-4 py-4">
                 <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
                   <CheckCircle2 className="w-8 h-8 text-emerald-600" />
@@ -667,9 +696,9 @@ export default function RegisterPrestadorPage() {
               {checkingEmail ? 'Verificando...' : 'Próximo'}
             </button>
           ) : step === 4 ? (
-            <button onClick={nextStep} disabled={loading || checkingEmail} className="btn-primary w-full flex items-center justify-center gap-2">
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
-              {loading ? 'Criando seu cadastro...' : 'Próximo: Pagamento'}
+            <button onClick={nextStep} disabled={checkingEmail} className="btn-primary w-full flex items-center justify-center gap-2">
+              {checkingEmail ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
+              {checkingEmail ? 'Verificando e-mail...' : 'Próximo: Pagamento'}
             </button>
           ) : null}
         </div>
