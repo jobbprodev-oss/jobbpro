@@ -232,6 +232,12 @@ export async function POST(request: NextRequest) {
 
       if (error) throw error;
 
+      // Marcar a vaga como encerrada após conclusão do serviço
+      await getSupabaseAdmin()
+        .from('vagas')
+        .update({ ativa: false })
+        .eq('id', vaga_id);
+
       const contId = (data as any).vagas?.contratante_id || (data as any).contratante_id;
       await getSupabaseAdmin().rpc('incrementar_contadores_conclusao', {
         p_prestador_id: prestador_id,

@@ -116,7 +116,7 @@ export default function VagaDetailPage() {
               new Date(vaga.data + 'T23:59:59') < new Date() ? 'bg-red-100 text-red-700' :
               'bg-emerald-100 text-emerald-700'
             }`}>
-              {!vaga.ativa ? 'Inativa' : new Date(vaga.data + 'T23:59:59') < new Date() ? 'Expirada' : 'Ativa'}
+              {!vaga.ativa ? 'Encerrada' : new Date(vaga.data + 'T23:59:59') < new Date() ? 'Expirada' : 'Ativa'}
             </span>
           </div>
 

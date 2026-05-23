@@ -164,7 +164,7 @@ export default function PrestadorMatchesPage() {
                           {formatCurrency(match.valor_acordado || (match as any).vagas?.valor_oferecido || 0)}
                         </span>
                       </div>
-                      {(match as any).contratante_perfil?.users?.nome && (
+                      {['confirmado', 'concluido'].includes(match.status) && (match as any).contratante_perfil?.users?.nome && (
                         <p className="text-xs text-gray-400">
                           Contratante: {(match as any).contratante_perfil.users.nome}
                         </p>

@@ -8,9 +8,9 @@ import { cn } from '@/lib/utils';
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { user } = useAppStore();
-
+  const { user, notificacoes } = useAppStore();
   const isPrestador = user?.tipo === 'prestador';
+  const matchBadge = !isPrestador ? notificacoes.filter((n) => !n.lida && n.tipo === 'match').length : 0;
 
   if (!user) return null;
 
@@ -25,7 +25,7 @@ export default function BottomNav() {
     : [
         { href: '/dashboard/contratante', icon: Home, label: 'Início' },
         { href: '/dashboard/contratante/nova-vaga', icon: PlusCircle, label: 'Nova Vaga' },
-        { href: '/dashboard/contratante/matches', icon: ClipboardList, label: 'Contratos' },
+        { href: '/dashboard/contratante/matches', icon: ClipboardList, label: 'Contratos', badge: matchBadge },
         { href: '/perfil', icon: User, label: 'Perfil' },
       ];
 
@@ -43,7 +43,14 @@ export default function BottomNav() {
                 isActive ? 'text-brand-600' : 'text-gray-400 hover:text-gray-600'
               )}
             >
-              <item.icon className={cn('w-5 h-5', isActive && 'stroke-[2.5]')} />
+              <div className="relative">
+                <item.icon className={cn('w-5 h-5', isActive && 'stroke-[2.5]')} />
+                {(item as any).badge > 0 && (
+                  <span className="absolute -top-1 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                    {(item as any).badge > 9 ? '9+' : (item as any).badge}
+                  </span>
+                )}
+              </div>
               <span className="text-[10px] font-medium">{item.label}</span>
             </Link>
           );

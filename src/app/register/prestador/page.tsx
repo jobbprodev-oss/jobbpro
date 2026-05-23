@@ -615,8 +615,8 @@ export default function RegisterPrestadorPage() {
                 <input type="checkbox" id="termos" checked={form.termo_aceite} onChange={(e) => updateForm('termo_aceite', e.target.checked)} className="w-5 h-5 mt-0.5 rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
                 <label htmlFor="termos" className="text-sm text-gray-600 leading-relaxed">
                   Declaro que as informações fornecidas são verdadeiras e aceito os{' '}
-                  <span className="text-brand-600 font-medium">Termos de Uso</span> e{' '}
-                  <span className="text-brand-600 font-medium">Política de Privacidade</span> da plataforma JOBBPRO.
+                  <a href="/termos" target="_blank" className="text-brand-600 font-medium underline">Termos de Uso</a> e{' '}
+                  <a href="/privacidade" target="_blank" className="text-brand-600 font-medium underline">Política de Privacidade</a> da plataforma JOBBPRO.
                 </label>
               </div>
             </div>

@@ -402,14 +402,51 @@ export default function RegisterContratantePage() {
           <div className="space-y-4 animate-slide-up">
             <h2 className="section-title">Pagamento do Cadastro</h2>
 
+            {!pagamentoConfirmado && !finalizando && (
+              <>
+                <div className="card p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <input type="checkbox" id="indicacao" checked={form.indicacao} onChange={(e) => updateForm('indicacao', e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
+                    <label htmlFor="indicacao" className="text-sm font-medium text-gray-700">Foi indicação?</label>
+                  </div>
+                  {form.indicacao && (
+                    <div className="space-y-3 pl-8">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-1 block">Nome de quem indicou *</label>
+                        <input type="text" value={form.indicacao_nome} onChange={(e) => updateForm('indicacao_nome', e.target.value)} className="input-field" placeholder="Nome completo" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-1 block">Telefone de quem indicou *</label>
+                        <input type="tel" value={form.indicacao_telefone} onChange={(e) => updateForm('indicacao_telefone', maskPhone(e.target.value))} className="input-field" placeholder="(11) 99999-9999" maxLength={15} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="card p-4">
+                  <div className="flex items-start gap-3">
+                    <input type="checkbox" id="termos" checked={form.termo_aceite} onChange={(e) => updateForm('termo_aceite', e.target.checked)} className="w-5 h-5 mt-0.5 rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
+                    <label htmlFor="termos" className="text-sm text-gray-600 leading-relaxed">
+                      Declaro que as informações são verdadeiras e aceito os{' '}
+                      <a href="/termos" target="_blank" className="text-brand-600 font-medium underline">Termos de Uso</a> e{' '}
+                      <a href="/privacidade" target="_blank" className="text-brand-600 font-medium underline">Política de Privacidade</a>.
+                    </label>
+                  </div>
+                </div>
+              </>
+            )}
+
             {!pixData && !pixLoading && (
               <div className="card p-4 space-y-4">
                 <p className="text-sm text-gray-600">
                   Realize o pagamento via PIX para concluir seu cadastro e ativar o acesso.
                 </p>
-                <button onClick={gerarPixCadastro} className="btn-primary w-full flex items-center justify-center gap-2">
+                <button onClick={gerarPixCadastro} disabled={!form.termo_aceite} className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                   <QrCode className="w-5 h-5" /> Gerar PIX para pagamento
                 </button>
+                {!form.termo_aceite && (
+                  <p className="text-xs text-amber-600 text-center">Aceite os Termos de Uso para continuar</p>
+                )}
               </div>
             )}
 
@@ -483,35 +520,6 @@ export default function RegisterContratantePage() {
               </div>
             )}
 
-            <div className="card p-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <input type="checkbox" id="indicacao" checked={form.indicacao} onChange={(e) => updateForm('indicacao', e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
-                <label htmlFor="indicacao" className="text-sm font-medium text-gray-700">Foi indicação?</label>
-              </div>
-              {form.indicacao && (
-                <div className="space-y-3 pl-8">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Nome de quem indicou *</label>
-                    <input type="text" value={form.indicacao_nome} onChange={(e) => updateForm('indicacao_nome', e.target.value)} className="input-field" placeholder="Nome completo" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Telefone de quem indicou *</label>
-                    <input type="tel" value={form.indicacao_telefone} onChange={(e) => updateForm('indicacao_telefone', maskPhone(e.target.value))} className="input-field" placeholder="(11) 99999-9999" maxLength={15} />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="card p-4">
-              <div className="flex items-start gap-3">
-                <input type="checkbox" id="termos" checked={form.termo_aceite} onChange={(e) => updateForm('termo_aceite', e.target.checked)} className="w-5 h-5 mt-0.5 rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
-                <label htmlFor="termos" className="text-sm text-gray-600 leading-relaxed">
-                  Declaro que as informações são verdadeiras e aceito os{' '}
-                  <span className="text-brand-600 font-medium">Termos de Uso</span> e{' '}
-                  <span className="text-brand-600 font-medium">Política de Privacidade</span>.
-                </label>
-              </div>
-            </div>
           </div>
         )}
 

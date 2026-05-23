@@ -7,12 +7,13 @@ import { useAppStore } from '@/lib/store';
 import Header from '@/components/header';
 import BottomNav from '@/components/bottom-nav';
 import AuthProvider from '@/components/auth-provider';
-import { PlusCircle, Loader2, Briefcase, MapPin, Calendar, Users } from 'lucide-react';
+import { PlusCircle, Loader2, Briefcase, MapPin, Calendar, Users, Bell } from 'lucide-react';
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils';
 import type { Vaga } from '@/lib/types';
 
 export default function DashboardContratantePage() {
-  const { user, contratantePerfil, loading: authLoading } = useAppStore();
+  const { user, contratantePerfil, notificacoes, loading: authLoading } = useAppStore();
+  const matchPendentes = notificacoes.filter((n) => !n.lida && n.tipo === 'match').length;
   const [vagas, setVagas] = useState<Vaga[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,6 +50,21 @@ export default function DashboardContratantePage() {
           </div>
         ) : (
           <div className="page-container">
+            {matchPendentes > 0 && (
+              <Link href="/dashboard/contratante/matches" className="flex items-center gap-3 p-4 mb-4 bg-amber-50 border border-amber-200 rounded-xl animate-slide-up">
+                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Bell className="w-5 h-5 text-amber-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-amber-900 text-sm">Novo interesse recebido!</p>
+                  <p className="text-xs text-amber-700">{matchPendentes} prestador{matchPendentes > 1 ? 'es demonstraram' : ' demonstrou'} interesse nas suas vagas. Toque para ver.</p>
+                </div>
+                <span className="w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center flex-shrink-0">
+                  {matchPendentes > 9 ? '9+' : matchPendentes}
+                </span>
+              </Link>
+            )}
+
             {/* Welcome */}
             <div className="card p-4 mb-6">
               <p className="text-sm text-gray-500">Olá,</p>
@@ -103,7 +119,7 @@ export default function DashboardContratantePage() {
                         new Date(vaga.data + 'T23:59:59') < new Date() ? 'bg-red-100 text-red-700' :
                         'bg-emerald-100 text-emerald-700'
                       }`}>
-                        {!vaga.ativa ? 'Inativa' : new Date(vaga.data + 'T23:59:59') < new Date() ? 'Expirada' : 'Ativa'}
+                        {!vaga.ativa ? 'Encerrada' : new Date(vaga.data + 'T23:59:59') < new Date() ? 'Expirada' : 'Ativa'}
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-500">

@@ -34,7 +34,7 @@ export default function VagaCard({ vaga, showMatch = false }: VagaCardProps) {
             new Date(vaga.data + 'T23:59:59') < new Date() ? 'bg-red-100 text-red-700' :
             'bg-emerald-100 text-emerald-700'
           }`}>
-            {!(vaga as Vaga).ativa ? 'Inativa' : new Date(vaga.data + 'T23:59:59') < new Date() ? 'Expirada' : 'Ativa'}
+            {!(vaga as Vaga).ativa ? 'Encerrada' : new Date(vaga.data + 'T23:59:59') < new Date() ? 'Expirada' : 'Ativa'}
           </span>
         )}
       </div>
@@ -67,11 +67,6 @@ export default function VagaCard({ vaga, showMatch = false }: VagaCardProps) {
           <DollarSign className="w-5 h-5" />
           {formatCurrency(valor)}
         </div>
-        {isCompativel && (vaga as VagaCompativel).contratante_nome && (
-          <span className="text-xs text-gray-400">
-            por {(vaga as VagaCompativel).contratante_nome}
-          </span>
-        )}
       </div>
     </Link>
   );
