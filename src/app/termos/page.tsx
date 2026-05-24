@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { Loader2, ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
 
@@ -15,16 +14,8 @@ export default function TermosPage() {
 
   const fetchTermos = async () => {
     try {
-      const { data, error } = await supabase
-        .from('configuracoes')
-        .select('termos_uso')
-        .eq('id', 'global')
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
+      const res = await fetch('/api/configuracoes');
+      const data = await res.json();
       setTermos(data?.termos_uso || '');
     } catch (err) {
       console.error('Erro ao buscar termos:', err);

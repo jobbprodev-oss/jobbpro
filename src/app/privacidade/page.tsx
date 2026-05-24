@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { Loader2, ArrowLeft, Shield } from 'lucide-react';
 import Link from 'next/link';
 
@@ -15,16 +14,8 @@ export default function PrivacidadePage() {
 
   const fetchPolitica = async () => {
     try {
-      const { data, error } = await supabase
-        .from('configuracoes')
-        .select('politica_privacidade')
-        .eq('id', 'global')
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
+      const res = await fetch('/api/configuracoes');
+      const data = await res.json();
       setPolitica(data?.politica_privacidade || '');
     } catch (err) {
       console.error('Erro ao buscar política:', err);
