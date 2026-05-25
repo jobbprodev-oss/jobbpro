@@ -97,11 +97,17 @@ export default function PrestadorMatchesPage() {
   };
 
   const STATUS_CONCLUIDOS = ['concluido', 'recusado', 'cancelado'];
+  const isExpirada = (m: Match) => {
+    const v = (m as any).vagas;
+    return m.status === 'pendente' && v?.data ? new Date(v.data + 'T23:59:59') < new Date() : false;
+  };
   const matchesFiltrados = filtro === 'todos'
     ? matches
     : filtro === 'concluido'
-      ? matches.filter((m) => STATUS_CONCLUIDOS.includes(m.status))
-      : matches.filter((m) => m.status === filtro);
+      ? matches.filter((m) => STATUS_CONCLUIDOS.includes(m.status) || isExpirada(m))
+      : filtro === 'pendente'
+        ? matches.filter((m) => m.status === 'pendente' && !isExpirada(m))
+        : matches.filter((m) => m.status === filtro);
 
   return (
     <AuthProvider>
