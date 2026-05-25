@@ -39,6 +39,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ avaliacoes: data });
     }
 
+    // Buscar todos os match_ids já avaliados pelo usuário
+    const avaliados = searchParams.get('avaliados');
+    if (avaliados === 'true') {
+      const { data, error } = await getAdmin()
+        .from('avaliacoes')
+        .select('match_id')
+        .eq('avaliador_id', authUser.id);
+      if (error) throw error;
+      return NextResponse.json({ match_ids: (data || []).map((a: any) => a.match_id) });
+    }
+
     // Verificar se já avaliou este match
     if (!match_id) return NextResponse.json({ error: 'match_id obrigatório' }, { status: 400 });
 

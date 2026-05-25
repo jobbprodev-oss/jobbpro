@@ -17,10 +17,25 @@ export default function PrestadorMatchesPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<string>('todos');
+  const [avaliadosIds, setAvaliadosIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!authLoading && prestadorPerfil) fetchMatches();
+    if (!authLoading && prestadorPerfil) {
+      fetchMatches();
+      fetchAvaliados();
+    }
   }, [prestadorPerfil, authLoading]);
+
+  const fetchAvaliados = async () => {
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/avaliacoes?avaliados=true', {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      const data = await res.json();
+      setAvaliadosIds(new Set(data.match_ids || []));
+    } catch {}
+  };
 
   const fetchMatches = async () => {
     if (!prestadorPerfil) return;
@@ -81,9 +96,12 @@ export default function PrestadorMatchesPage() {
     }
   };
 
+  const STATUS_CONCLUIDOS = ['concluido', 'recusado', 'cancelado'];
   const matchesFiltrados = filtro === 'todos'
     ? matches
-    : matches.filter((m) => m.status === filtro);
+    : filtro === 'concluido'
+      ? matches.filter((m) => STATUS_CONCLUIDOS.includes(m.status))
+      : matches.filter((m) => m.status === filtro);
 
   return (
     <AuthProvider>
@@ -235,12 +253,18 @@ export default function PrestadorMatchesPage() {
                     )}
 
                     {match.status === 'concluido' && (
-                      <Link
-                        href={`/avaliar/${match.id}`}
-                        className="btn-secondary w-full mt-3 text-sm py-2.5 flex items-center justify-center gap-2 text-yellow-600 border-yellow-200 hover:bg-yellow-50"
-                      >
-                        <Star className="w-4 h-4" /> Avaliar Contratante
-                      </Link>
+                      avaliadosIds.has(match.id) ? (
+                        <p className="text-xs text-emerald-600 mt-3 pt-3 border-t border-gray-100 text-center flex items-center justify-center gap-1">
+                          <CheckCircle className="w-3.5 h-3.5" /> Avaliação realizada
+                        </p>
+                      ) : (
+                        <Link
+                          href={`/avaliar/${match.id}`}
+                          className="btn-secondary w-full mt-3 text-sm py-2.5 flex items-center justify-center gap-2 text-yellow-600 border-yellow-200 hover:bg-yellow-50"
+                        >
+                          <Star className="w-4 h-4" /> Avaliar Contratante
+                        </Link>
+                      )
                     )}
                   </div>
                   );

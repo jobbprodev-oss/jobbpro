@@ -278,6 +278,61 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ match: data });
     }
 
+    if (action === 'cancelar_contratante') {
+      // Contratante cancela um match já aceito (aguardando confirmação do prestador)
+      const { data: matchAtual } = await getSupabaseAdmin()
+        .from('matches')
+        .select('status')
+        .eq('vaga_id', vaga_id)
+        .eq('prestador_id', prestador_id)
+        .maybeSingle();
+
+      const { data, error } = await getSupabaseAdmin()
+        .from('matches')
+        .update({ status: 'cancelado' })
+        .eq('vaga_id', vaga_id)
+        .eq('prestador_id', prestador_id)
+        .in('status', ['aceito', 'pendente'])
+        .select('*, vagas(titulo)')
+        .single();
+
+      if (error) throw error;
+
+      // Devolve a vaga para o pool se estava aceita
+      if (matchAtual?.status === 'aceito') {
+        const { data: vagaAtual } = await getSupabaseAdmin()
+          .from('vagas')
+          .select('vagas_preenchidas')
+          .eq('id', vaga_id)
+          .single();
+        if (vagaAtual && vagaAtual.vagas_preenchidas > 0) {
+          await getSupabaseAdmin()
+            .from('vagas')
+            .update({ vagas_preenchidas: vagaAtual.vagas_preenchidas - 1 })
+            .eq('id', vaga_id);
+        }
+      }
+
+      // Notificar prestador sobre o cancelamento
+      const { data: prestadorInfo } = await getSupabaseAdmin()
+        .from('prestador_perfil')
+        .select('user_id')
+        .eq('id', prestador_id)
+        .single();
+      const vagaTitulo = (data as any).vagas?.titulo || 'a vaga';
+      if (prestadorInfo) {
+        await criarNotificacao(
+          prestadorInfo.user_id,
+          'Match cancelado',
+          `O contratante cancelou o match para "${vagaTitulo}".`,
+          'match',
+          `/dashboard/prestador/matches`
+        );
+      }
+
+      return NextResponse.json({ match: data });
+    }
+
     return NextResponse.json({ error: 'Ação inválida' }, { status: 400 });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Erro interno' }, { status: 500 });

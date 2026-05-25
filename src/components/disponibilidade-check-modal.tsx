@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { AlertCircle, Calendar, Clock, X, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -23,6 +24,7 @@ export default function DisponibilidadeCheckModal({
   vagaHorarioFim,
   onConfirm,
 }: DisponibilidadeCheckModalProps) {
+  const router = useRouter();
   const [disponibilidades, setDisponibilidades] = useState<Disponibilidade[]>([]);
   const [loading, setLoading] = useState(false);
   const [temDisponibilidade, setTemDisponibilidade] = useState(false);
@@ -137,10 +139,13 @@ export default function DisponibilidadeCheckModal({
               </div>
 
               <button
-                onClick={onClose}
-                className="btn-secondary w-full"
+                onClick={() => {
+                  onClose();
+                  router.push('/dashboard/prestador/disponibilidade');
+                }}
+                className="btn-primary w-full"
               >
-                Entendido
+                Ir para Agenda
               </button>
             </div>
           )}

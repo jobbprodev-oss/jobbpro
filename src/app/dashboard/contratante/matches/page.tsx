@@ -17,10 +17,25 @@ export default function ContratanteMatchesPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<string>('todos');
+  const [avaliadosIds, setAvaliadosIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!authLoading && contratantePerfil) fetchMatches();
+    if (!authLoading && contratantePerfil) {
+      fetchMatches();
+      fetchAvaliados();
+    }
   }, [contratantePerfil, authLoading]);
+
+  const fetchAvaliados = async () => {
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/avaliacoes?avaliados=true', {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      const data = await res.json();
+      setAvaliadosIds(new Set(data.match_ids || []));
+    } catch {}
+  };
 
   const fetchMatches = async () => {
     if (!contratantePerfil) return;
@@ -39,7 +54,7 @@ export default function ContratanteMatchesPage() {
     }
   };
 
-  const responderMatch = async (vagaId: string, prestadorId: string, acao: 'aceitar' | 'recusar' | 'concluir') => {
+  const responderMatch = async (vagaId: string, prestadorId: string, acao: 'aceitar' | 'recusar' | 'concluir' | 'cancelar_contratante') => {
     try {
       const token = await getAuthToken();
       const res = await fetch('/api/match', {
@@ -56,6 +71,7 @@ export default function ContratanteMatchesPage() {
       toast.success(
         acao === 'aceitar' ? 'Interesse aceito!' :
         acao === 'recusar' ? 'Interesse recusado' :
+        acao === 'cancelar_contratante' ? 'Match cancelado' :
         'Serviço concluído!'
       );
       fetchMatches();
@@ -64,9 +80,12 @@ export default function ContratanteMatchesPage() {
     }
   };
 
+  const STATUS_CONCLUIDOS = ['concluido', 'recusado', 'cancelado'];
   const matchesFiltrados = filtro === 'todos'
     ? matches
-    : matches.filter((m) => m.status === filtro);
+    : filtro === 'concluido'
+      ? matches.filter((m) => STATUS_CONCLUIDOS.includes(m.status))
+      : matches.filter((m) => m.status === filtro);
 
   return (
     <AuthProvider>
@@ -184,9 +203,19 @@ export default function ContratanteMatchesPage() {
                       )}
 
                       {match.status === 'aceito' && (
-                        <p className="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-100 text-center">
-                          Aguardando confirmação do prestador
-                        </p>
+                        <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
+                          <p className="text-xs text-gray-400 flex-1">Aguardando confirmação do prestador</p>
+                          <button
+                            onClick={() => {
+                              if (confirm('Tem certeza que deseja cancelar este match?')) {
+                                responderMatch(match.vaga_id, match.prestador_id, 'cancelar_contratante');
+                              }
+                            }}
+                            className="flex items-center gap-1 text-xs text-red-500 border border-red-200 hover:bg-red-50 rounded-lg px-3 py-1.5 font-medium transition-colors"
+                          >
+                            <XCircle className="w-3.5 h-3.5" /> Cancelar
+                          </button>
+                        </div>
                       )}
 
                       {match.status === 'confirmado' && (
@@ -219,12 +248,18 @@ export default function ContratanteMatchesPage() {
                       )}
 
                       {match.status === 'concluido' && (
-                        <Link
-                          href={`/avaliar/${match.id}`}
-                          className="btn-secondary w-full mt-3 text-sm py-2.5 flex items-center justify-center gap-2 text-yellow-600 border-yellow-200 hover:bg-yellow-50"
-                        >
-                          <Star className="w-3.5 h-3.5" /> Avaliar Prestador
-                        </Link>
+                        avaliadosIds.has(match.id) ? (
+                          <p className="text-xs text-emerald-600 mt-3 pt-3 border-t border-gray-100 text-center flex items-center justify-center gap-1">
+                            <CheckCircle className="w-3.5 h-3.5" /> Avaliação realizada
+                          </p>
+                        ) : (
+                          <Link
+                            href={`/avaliar/${match.id}`}
+                            className="btn-secondary w-full mt-3 text-sm py-2.5 flex items-center justify-center gap-2 text-yellow-600 border-yellow-200 hover:bg-yellow-50"
+                          >
+                            <Star className="w-3.5 h-3.5" /> Avaliar Prestador
+                          </Link>
+                        )
                       )}
                     </div>
                   );

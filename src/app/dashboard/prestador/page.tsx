@@ -7,11 +7,13 @@ import Header from '@/components/header';
 import BottomNav from '@/components/bottom-nav';
 import VagaCard from '@/components/vaga-card';
 import AuthProvider from '@/components/auth-provider';
-import { Briefcase, Clock, CheckCircle, XCircle, Loader2, Search } from 'lucide-react';
+import { Briefcase, Clock, CheckCircle, XCircle, Loader2, Search, Bell } from 'lucide-react';
+import Link from 'next/link';
 import type { VagaCompativel } from '@/lib/types';
 
 export default function DashboardPrestadorPage() {
-  const { user, prestadorPerfil, loading: authLoading } = useAppStore();
+  const { user, prestadorPerfil, notificacoes, loading: authLoading } = useAppStore();
+  const matchPendentes = notificacoes.filter((n) => !n.lida && n.tipo === 'match').length;
   const [vagas, setVagas] = useState<VagaCompativel[]>([]);
   const [loading, setLoading] = useState(true);
   const [disponivel, setDisponivel] = useState(true);
@@ -60,6 +62,21 @@ export default function DashboardPrestadorPage() {
         <Header title="Início" />
 
         <div className="page-container">
+          {matchPendentes > 0 && (
+            <Link href="/dashboard/prestador/matches" className="flex items-center gap-3 p-4 mb-4 bg-amber-50 border border-amber-200 rounded-xl animate-slide-up">
+              <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Bell className="w-5 h-5 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-amber-900 text-sm">Atualização de match!</p>
+                <p className="text-xs text-amber-700">{matchPendentes > 1 ? `${matchPendentes} notificações novas` : 'Você tem uma nova resposta do contratante. Toque para ver.'}</p>
+              </div>
+              <span className="w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center flex-shrink-0">
+                {matchPendentes > 9 ? '9+' : matchPendentes}
+              </span>
+            </Link>
+          )}
+
           {/* Status */}
           <div className="card p-4 mb-6">
             <div className="flex items-center justify-between">
