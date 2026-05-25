@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { getAuthToken } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import AuthProvider from '@/components/auth-provider';
 import { Loader2, ArrowLeft, Search, ClipboardList, Eye } from 'lucide-react';
@@ -40,13 +40,13 @@ export default function AdminMatchesPage() {
   const fetchMatches = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('matches')
-        .select('id, status, match_score, valor_acordado, created_at, data_aceite, data_conclusao, vagas(titulo, funcao_principal), prestador_perfil(funcao_principal, users(nome)), contratante_perfil(nome_empresa, users(nome))')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      console.log('Matches data:', data); // Debug log
-      setMatches((data as any) || []);
+      const token = await getAuthToken();
+      const res = await fetch('/api/admin/matches', {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setMatches(data.matches || []);
     } catch (err) {
       console.error('Erro:', err);
     } finally {
@@ -71,8 +71,9 @@ export default function AdminMatchesPage() {
     const map: Record<string, string> = {
       pendente: 'bg-yellow-500/20 text-yellow-400',
       aceito: 'bg-emerald-500/20 text-emerald-400',
-      recusado: 'bg-red-500/20 text-red-400',
+      confirmado: 'bg-teal-500/20 text-teal-400',
       concluido: 'bg-blue-500/20 text-blue-400',
+      recusado: 'bg-red-500/20 text-red-400',
       cancelado: 'bg-gray-500/20 text-gray-400',
     };
     return map[status] || 'bg-gray-500/20 text-gray-400';
@@ -119,6 +120,7 @@ export default function AdminMatchesPage() {
                 <option value="todos">Todos</option>
                 <option value="pendente">Pendentes</option>
                 <option value="aceito">Aceitos</option>
+                <option value="confirmado">Confirmados</option>
                 <option value="concluido">Concluídos</option>
                 <option value="recusado">Recusados</option>
                 <option value="cancelado">Cancelados</option>
