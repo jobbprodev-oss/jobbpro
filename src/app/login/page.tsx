@@ -158,6 +158,11 @@ export default function LoginPage() {
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
+            <div className="text-center">
+              <Link href="/recuperar-senha" className="text-sm text-brand-600 hover:text-brand-700 font-medium">
+                Esqueci minha senha
+              </Link>
+            </div>
           </form>
 
           <div className="mt-6 pt-4 border-t border-gray-100 text-center">

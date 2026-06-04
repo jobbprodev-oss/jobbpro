@@ -88,7 +88,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="px-6 py-8 text-center">
         <p className="text-white/50 text-sm">
-          © 2024 JOBBPRO. Todos os direitos reservados.
+          © 2026 JOBBPRO. Todos os direitos reservados.
         </p>
       </footer>
     </div>

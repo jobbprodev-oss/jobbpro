@@ -93,7 +93,7 @@ export default function DisponibilidadePage() {
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium"
               >
                 <Plus className="w-4 h-4" />
-                Adicionar
+                Adicionar disponibilidade
               </button>
             </div>
 
