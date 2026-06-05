@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { getAuthToken } from '@/lib/supabase';
 import AuthProvider from '@/components/auth-provider';
-import { Loader2, ArrowLeft, Plus, Tag, Check, X, CheckCircle, XCircle, Clock, Trash2, Edit2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Tag, Check, X, CheckCircle, XCircle, Clock, Trash2, Edit2, Upload, Download, FileSpreadsheet } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Funcao {
@@ -51,6 +51,10 @@ function AdminFuncoesContent() {
   const [editingFuncaoId, setEditingFuncaoId] = useState<string | null>(null);
   const [editingNome, setEditingNome] = useState('');
   const [nomeEditado, setNomeEditado] = useState<Record<string, string>>({});
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState<{ cadastradas: number; ignoradas: number; vazias: number } | null>(null);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -154,6 +158,82 @@ function AdminFuncoesContent() {
     }
   };
 
+  const downloadModelo = async () => {
+    try {
+      const res = await fetch(`/api/admin/funcoes?all=1&t=${Date.now()}`, { cache: 'no-store' });
+      const data = await res.json();
+      const lista: Funcao[] = data.funcoes || [];
+      const XLSX = await import('xlsx');
+      const ws = XLSX.utils.json_to_sheet(
+        lista.map((f) => ({ nome_funcao: f.nome })),
+        { header: ['nome_funcao'] }
+      );
+      ws['!cols'] = [{ wch: 40 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Funcoes');
+      XLSX.writeFile(wb, 'modelo_funcoes.xlsx');
+    } catch {
+      toast.error('Erro ao baixar modelo');
+    }
+  };
+
+  const parseFile = async (file: File): Promise<{ nomes: string[]; vazias: number; valid: boolean }> => {
+    const XLSX = await import('xlsx');
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const raw = e.target?.result;
+          const wb = XLSX.read(raw, { type: 'binary' });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
+          if (rows.length === 0 || !Object.prototype.hasOwnProperty.call(rows[0], 'nome_funcao')) {
+            resolve({ nomes: [], vazias: 0, valid: false });
+            return;
+          }
+          let vazias = 0;
+          const nomes: string[] = [];
+          for (const row of rows) {
+            const nome = String(row.nome_funcao || '').trim();
+            if (!nome) { vazias++; } else { nomes.push(nome); }
+          }
+          resolve({ nomes, vazias, valid: true });
+        } catch (err) { reject(err); }
+      };
+      reader.readAsBinaryString(file);
+    });
+  };
+
+  const handleImport = async () => {
+    if (!importFile) return;
+    setImportLoading(true);
+    try {
+      const { nomes, vazias, valid } = await parseFile(importFile);
+      if (!valid) {
+        toast.error('O arquivo precisa seguir o modelo padrão com a coluna nome_funcao.');
+        return;
+      }
+      if (nomes.length === 0) {
+        toast.error('Nenhuma função válida encontrada no arquivo.');
+        return;
+      }
+      const token = await getAuthToken();
+      const res = await fetch('/api/admin/funcoes/importar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ nomes }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setImportResult({ cadastradas: data.cadastradas, ignoradas: data.ignoradas, vazias });
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao importar');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   const responderSolicitacao = async (id: string, acao: 'aprovar' | 'rejeitar') => {
     try {
       const token = await getAuthToken();
@@ -251,6 +331,11 @@ function AdminFuncoesContent() {
                     className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors">
                     {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                     Adicionar
+                  </button>
+                  <button onClick={() => { setShowImportModal(true); setImportFile(null); setImportResult(null); }}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-medium transition-colors">
+                    <FileSpreadsheet className="w-4 h-4" />
+                    Importar Excel
                   </button>
                 </div>
 
@@ -378,6 +463,68 @@ function AdminFuncoesContent() {
               </div>
             )}
           </div>
+
+          {/* Modal de Importação */}
+          {showImportModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+              <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-md p-6 space-y-5">
+                <div className="flex items-center gap-3">
+                  <FileSpreadsheet className="w-6 h-6 text-emerald-400" />
+                  <h2 className="text-lg font-bold">Importar Funções via Excel</h2>
+                </div>
+
+                <div className="p-4 bg-gray-900 rounded-xl space-y-2">
+                  <p className="text-sm text-gray-400">Baixe o modelo com todas as funções cadastradas, edite adicionando novas linhas e reimporte.</p>
+                  <button onClick={downloadModelo}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors">
+                    <Download className="w-4 h-4" /> Baixar modelo padrão (.xlsx)
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300">Selecionar arquivo</label>
+                  <label className="flex items-center gap-3 px-4 py-3 bg-gray-900 border border-dashed border-gray-600 hover:border-emerald-500 rounded-xl cursor-pointer transition-colors">
+                    <Upload className="w-5 h-5 text-gray-400" />
+                    <span className="text-sm text-gray-400">
+                      {importFile ? importFile.name : 'Clique para selecionar .xlsx ou .csv'}
+                    </span>
+                    <input
+                      type="file"
+                      accept=".xlsx,.csv"
+                      className="hidden"
+                      onChange={(e) => { setImportFile(e.target.files?.[0] || null); setImportResult(null); }}
+                    />
+                  </label>
+                </div>
+
+                {importResult && (
+                  <div className="p-4 bg-emerald-900/30 border border-emerald-700/50 rounded-xl">
+                    <p className="text-sm font-medium text-emerald-400">Importação concluída!</p>
+                    <p className="text-xs text-gray-300 mt-1">
+                      {importResult.cadastradas} {importResult.cadastradas === 1 ? 'função cadastrada' : 'funções cadastradas'},
+                      {' '}{importResult.ignoradas} ignorada{importResult.ignoradas !== 1 ? 's' : ''} por duplicidade
+                      {importResult.vazias > 0 && ` e ${importResult.vazias} linha${importResult.vazias !== 1 ? 's' : ''} vazia${importResult.vazias !== 1 ? 's' : ''}`}.
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-1">
+                  <button
+                    onClick={handleImport}
+                    disabled={!importFile || importLoading}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors">
+                    {importLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    {importLoading ? 'Importando...' : 'Importar funções'}
+                  </button>
+                  <button
+                    onClick={() => setShowImportModal(false)}
+                    className="px-5 py-2.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors">
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </AuthProvider>
