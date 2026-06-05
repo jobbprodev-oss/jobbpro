@@ -221,8 +221,16 @@ export default function VagaDetailPage() {
         )}
 
         {user?.tipo === 'prestador' && vaga.ativa && prestadorPerfil && (() => {
-          const funcoesPrestador = [prestadorPerfil.funcao_principal, prestadorPerfil.funcao_2, prestadorPerfil.funcao_3].filter(Boolean);
-          const funcaoCompativel = funcoesPrestador.includes(vaga.funcao_principal);
+          const normalize = (s?: string | null) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+          const funcoesPrestador = [
+            prestadorPerfil.funcao_principal,
+            prestadorPerfil.funcao_2,
+            prestadorPerfil.funcao_3,
+            prestadorPerfil.funcao_4,
+            prestadorPerfil.funcao_5,
+            prestadorPerfil.funcao_6,
+          ].filter(Boolean).map(normalize);
+          const funcaoCompativel = funcoesPrestador.includes(normalize(vaga.funcao_principal));
           return funcaoCompativel ? (
           jaEnviou ? (
             <div className="w-full mt-4 flex items-center justify-center gap-2 btn-secondary text-emerald-600 cursor-default">
@@ -265,9 +273,14 @@ export default function VagaDetailPage() {
                 let score = 50; // Base score
                 
                 // Função principal (30%)
-                if (prestadorPerfil!.funcao_principal === vaga.funcao_principal) {
+                const normScore = (s?: string | null) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+                const vagaFuncNorm = normScore(vaga.funcao_principal);
+                if (normScore(prestadorPerfil!.funcao_principal) === vagaFuncNorm) {
                   score += 30;
-                } else if (prestadorPerfil!.funcao_2 === vaga.funcao_principal || prestadorPerfil!.funcao_3 === vaga.funcao_principal) {
+                } else if (
+                  [prestadorPerfil!.funcao_2, prestadorPerfil!.funcao_3, prestadorPerfil!.funcao_4, prestadorPerfil!.funcao_5, prestadorPerfil!.funcao_6]
+                    .some((f) => normScore(f) === vagaFuncNorm)
+                ) {
                   score += 20;
                 }
                 
