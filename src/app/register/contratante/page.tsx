@@ -18,9 +18,10 @@ export default function RegisterContratantePage() {
   const [pixData, setPixData] = useState<{ asaas_payment_id: string; qr_code: string; copia_cola: string; valor: number; plano_id: string; plano_nome: string; duracao_dias: number } | null>(null);
   const [pixLoading, setPixLoading] = useState(false);
   const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
-  const [planoConfirmado, setPlanoConfirmado] = useState<{ plano_id: string; duracao_dias: number } | null>(null);
+  const [planoConfirmado, setPlanoConfirmado] = useState<{ plano_id: string; duracao_dias: number; userId: string } | null>(null);
   const [finalizando, setFinalizando] = useState(false);
   const [erroFinalizacao, setErroFinalizacao] = useState<string | null>(null);
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [checkingEmail, setCheckingEmail] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const finalizingRef = useRef(false);
@@ -100,79 +101,17 @@ export default function RegisterContratantePage() {
     }
   };
 
-  const finalizeAfterPayment = async (plano_id: string, duracao_dias: number) => {
+  // Ativa o plano após confirmação do pagamento (conta já foi criada antes do PIX)
+  const finalizeAfterPayment = async (userId: string, plano_id: string, duracao_dias: number) => {
     if (finalizingRef.current) return;
     finalizingRef.current = true;
     setFinalizando(true);
     setErroFinalizacao(null);
     try {
-      let userId: string;
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: form.email.trim().toLowerCase(),
-        password: form.senha,
-      });
-      if (authError && (authError.message?.includes('already registered') || authError.message?.includes('Email already exists'))) {
-        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-          email: form.email.trim(),
-          password: form.senha,
-        });
-        if (loginError) throw loginError;
-        userId = loginData.user!.id;
-      } else if (authError) {
-        throw authError;
-      } else if (!authData.user) {
-        throw new Error('Erro ao criar conta. Verifique os dados e tente novamente.');
-      } else {
-        userId = authData.user.id;
-        if (!authData.session) {
-          await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.senha });
-        }
-      }
-
-      const upsertRes = await fetch('/api/users/query', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'upsert',
-          record: {
-            id: userId,
-            tipo: 'contratante',
-            nome: form.nome,
-            cpf_cnpj: form.cpf_cnpj.replace(/\D/g, ''),
-            celular: form.celular.replace(/\D/g, ''),
-            email: form.email.trim().toLowerCase(),
-            cep: form.cep,
-            endereco: form.endereco,
-            numero: form.numero,
-            complemento: form.complemento,
-            bairro: form.bairro,
-            cidade: form.cidade,
-            estado: form.estado,
-            indicacao: form.indicacao,
-            indicacao_nome: form.indicacao ? form.indicacao_nome : null,
-            indicacao_telefone: form.indicacao ? form.indicacao_telefone.replace(/\D/g, '') : null,
-            termo_aceite: form.termo_aceite,
-          },
-        }),
-      });
-      const { error: userError } = await upsertRes.json();
-      if (userError) throw new Error(userError);
-
-      const perfilRes = await fetch('/api/users/query', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'upsertContratantePerfil',
-          record: { user_id: userId, nome_empresa: form.nome_empresa || null },
-        }),
-      });
-      const { error: perfilError } = await perfilRes.json();
-      if (perfilError) throw new Error(perfilError);
-
       if (plano_id) {
         const expira = new Date();
         expira.setDate(expira.getDate() + (duracao_dias || 365));
-        await fetch('/api/users/query', {
+        const r = await fetch('/api/users/query', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -181,14 +120,16 @@ export default function RegisterContratantePage() {
             record: { plano_id, plano_ativo: true, plano_expira_em: expira.toISOString() },
           }),
         });
+        const { error: planError } = await r.json();
+        if (planError) throw new Error(planError);
       }
-
+      setPagamentoConfirmado(true);
       toast.success('Cadastro realizado com sucesso! Bem-vindo ao JOBBPRO!');
       router.push('/dashboard/contratante');
     } catch (err: any) {
       const msg: string = err.message || '';
       console.error('[finalizeAfterPayment contratante]', msg);
-      setErroFinalizacao(msg || 'Erro ao finalizar o cadastro. Tente novamente.');
+      setErroFinalizacao(msg || 'Erro ao ativar o plano. Entre em contato com o suporte.');
     } finally {
       setFinalizando(false);
       finalizingRef.current = false;
@@ -265,7 +206,82 @@ export default function RegisterContratantePage() {
 
   const gerarPixCadastro = async () => {
     setPixLoading(true);
+    setErroFinalizacao(null);
     try {
+      // PASSO 1: Criar conta Supabase ANTES de gerar o PIX
+      // Garante que o usuário existe mesmo se fechar o app após o pagamento
+      let userId: string;
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: form.email.trim().toLowerCase(),
+        password: form.senha,
+      });
+      if (authError && (authError.message?.includes('already registered') || authError.message?.includes('Email already exists'))) {
+        // Conta já existe (ex: tentativa anterior). Tenta logar para obter o userId.
+        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+          email: form.email.trim(),
+          password: form.senha,
+        });
+        if (loginError) {
+          toast.error('Este e-mail já está cadastrado com outra senha. Use "Esqueci minha senha" para recuperar o acesso.');
+          return;
+        }
+        userId = loginData.user!.id;
+      } else if (authError) {
+        throw authError;
+      } else if (!authData.user) {
+        throw new Error('Erro ao criar conta. Verifique os dados e tente novamente.');
+      } else {
+        userId = authData.user.id;
+        if (!authData.session) {
+          await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.senha });
+        }
+      }
+      setPendingUserId(userId);
+
+      // PASSO 2: Salvar perfil do usuário (plano_ativo=false até pagamento confirmar)
+      const [upsertRes, perfilRes] = await Promise.all([
+        fetch('/api/users/query', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'upsert',
+            record: {
+              id: userId,
+              tipo: 'contratante',
+              nome: form.nome,
+              cpf_cnpj: form.cpf_cnpj.replace(/\D/g, ''),
+              celular: form.celular.replace(/\D/g, ''),
+              email: form.email.trim().toLowerCase(),
+              cep: form.cep,
+              endereco: form.endereco,
+              numero: form.numero,
+              complemento: form.complemento,
+              bairro: form.bairro,
+              cidade: form.cidade,
+              estado: form.estado,
+              indicacao: form.indicacao,
+              indicacao_nome: form.indicacao ? form.indicacao_nome : null,
+              indicacao_telefone: form.indicacao ? form.indicacao_telefone.replace(/\D/g, '') : null,
+              termo_aceite: form.termo_aceite,
+              plano_ativo: false,
+            },
+          }),
+        }),
+        fetch('/api/users/query', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'upsertContratantePerfil',
+            record: { user_id: userId, nome_empresa: form.nome_empresa || null },
+          }),
+        }),
+      ]);
+      const { error: userError } = await upsertRes.json();
+      if (userError) throw new Error(userError);
+      const { error: perfilError } = await perfilRes.json();
+      if (perfilError) throw new Error(perfilError);
+
+      // PASSO 3: Agora gera o PIX (conta já está salva)
       const res = await fetch('/api/pagamentos/cadastro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -275,12 +291,14 @@ export default function RegisterContratantePage() {
           cpf: form.cpf_cnpj,
           celular: form.celular,
           email: form.email,
+          user_id: userId,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setPixData(data);
-      // Iniciar polling
+
+      // PASSO 4: Iniciar polling — apenas ativa o plano
       if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = setInterval(async () => {
         try {
@@ -288,8 +306,8 @@ export default function RegisterContratantePage() {
           const statusData = await statusRes.json();
           if (statusData.status === 'CONFIRMED') {
             if (intervalRef.current) clearInterval(intervalRef.current);
-            setPlanoConfirmado({ plano_id: data.plano_id, duracao_dias: data.duracao_dias });
-            await finalizeAfterPayment(data.plano_id, data.duracao_dias);
+            setPlanoConfirmado({ plano_id: data.plano_id, duracao_dias: data.duracao_dias, userId });
+            await finalizeAfterPayment(userId, data.plano_id, data.duracao_dias);
           }
         } catch {}
       }, 5000);
@@ -502,7 +520,7 @@ export default function RegisterContratantePage() {
                 <p className="text-xs text-red-600">{erroFinalizacao}</p>
                 <p className="text-xs text-gray-500">Seu pagamento foi recebido. Clique abaixo para tentar novamente.</p>
                 <button
-                  onClick={() => planoConfirmado && finalizeAfterPayment(planoConfirmado.plano_id, planoConfirmado.duracao_dias)}
+                  onClick={() => planoConfirmado && finalizeAfterPayment(planoConfirmado.userId, planoConfirmado.plano_id, planoConfirmado.duracao_dias)}
                   className="btn-primary w-full"
                 >
                   Tentar novamente

@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Chave do Asaas não configurada' }, { status: 500 });
     }
 
-    const { tipo_usuario, nome, cpf, celular, email } = await request.json();
+    const { tipo_usuario, nome, cpf, celular, email, user_id } = await request.json();
 
     if (!tipo_usuario || !nome || !cpf || !email) {
       return NextResponse.json({ error: 'Dados obrigatórios: tipo_usuario, nome, cpf, email' }, { status: 400 });
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
         value: valor,
         dueDate: dueDateStr,
         description: `JOBBPRO - Cadastro ${tipo_usuario === 'prestador' ? 'Prestador' : 'Contratante'}`,
-        externalReference: `cadastro_${cpfLimpo}`,
+        externalReference: user_id ? `cadastro_${user_id}` : `cadastro_${cpfLimpo}`,
       }),
       cache: 'no-store',
     });
