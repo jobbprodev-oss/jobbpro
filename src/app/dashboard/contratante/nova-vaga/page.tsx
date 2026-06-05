@@ -83,7 +83,7 @@ export default function NovaVagaPage() {
       return;
     }
     if (!form.termo_aceite) {
-      toast.error('Aceite os termos para continuar');
+      toast.error('Aceite o Termo de Uso para continuar');
       return;
     }
     if (!contratantePerfil) {
@@ -210,8 +210,8 @@ export default function NovaVagaPage() {
           <div className="flex items-start gap-3">
             <input type="checkbox" id="termos" checked={form.termo_aceite} onChange={(e) => updateForm('termo_aceite', e.target.checked)} className="w-5 h-5 mt-0.5 rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
             <label htmlFor="termos" className="text-sm text-gray-600">
-              Confirmo que as informações são verdadeiras e aceito os{' '}
-              <a href="/termos" target="_blank" className="text-brand-600 font-medium underline">termos da plataforma</a>.
+              Confirmo que as informações são verdadeiras e aceito o{' '}
+              <a href="/termos" target="_blank" className="text-brand-600 font-medium underline">Termo de Uso</a> da plataforma.
             </label>
           </div>
         </div>

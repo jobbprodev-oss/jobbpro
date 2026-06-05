@@ -41,7 +41,7 @@ export default function TermosPage() {
           </Link>
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-brand-400" />
-            <h1 className="text-lg font-bold">Termos de Uso</h1>
+            <h1 className="text-lg font-bold">Termo de Uso</h1>
           </div>
         </div>
       </header>
