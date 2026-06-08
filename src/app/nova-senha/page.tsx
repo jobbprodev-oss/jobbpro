@@ -30,8 +30,7 @@ export default function NovaSenhaPage() {
     const hash = typeof window !== 'undefined' ? window.location.hash : '';
     if (hash.includes('error=')) {
       const params = new URLSearchParams(hash.replace('#', ''));
-      const desc = params.get('error_description') || 'Link inválido ou expirado.';
-      setErro(desc.replace(/\+/g, ' '));
+      setErro('Link expirado ou inválido. Solicite uma nova redefinição de senha.');
     }
 
     return () => subscription.unsubscribe();
