@@ -139,8 +139,8 @@ export default function PerfilPage() {
                 </div>
               )}
               <button type="button" onClick={() => setShowAdicionarFuncao(true)}
-                className="flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 font-medium pt-2">
-                <PlusCircle className="w-4 h-4" /> Adicionar mais funções
+                className="btn-primary w-full flex items-center justify-center gap-2 mt-3 py-3 text-sm font-bold tracking-wide">
+                <PlusCircle className="w-5 h-5" /> ADICIONAR MAIS FUNÇÕES
               </button>
               <AdicionarFuncaoModal open={showAdicionarFuncao} onClose={() => setShowAdicionarFuncao(false)} />
             </div>
