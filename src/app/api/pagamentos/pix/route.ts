@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { ASAAS_API_URL, getAsaasKey } from '@/lib/pagamentos-server';
 
 let _client: SupabaseClient | null = null;
 function getAdmin(): SupabaseClient {
@@ -7,15 +8,6 @@ function getAdmin(): SupabaseClient {
     _client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   }
   return _client;
-}
-
-const ASAAS_API_URL = 'https://sandbox.asaas.com/api/v3';
-function getAsaasKey() {
-  const rawKey = process.env.ASAAS_API_KEY || '';
-  if (!rawKey) {
-    throw new Error('Chave do Asaas não configurada. Configure ASAAS_API_KEY nas variáveis de ambiente.');
-  }
-  return rawKey.startsWith('$') ? rawKey : `$${rawKey}`;
 }
 
 export const dynamic = 'force-dynamic';
@@ -47,7 +39,7 @@ export async function POST(request: NextRequest) {
     const { data: { user: authUser } } = await getAdmin().auth.getUser(token);
     if (!authUser) return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
 
-    const { tipo, nome_funcao, plano_id, descricao } = await request.json();
+    const { tipo, nome_funcao, plano_id, descricao, vaga_id } = await request.json();
     if (!tipo && !plano_id) return NextResponse.json({ error: 'Tipo de pagamento ou plano_id obrigatório' }, { status: 400 });
 
     // Buscar dados do usuário
@@ -176,13 +168,17 @@ export async function POST(request: NextRequest) {
         user_id: authUser.id,
         asaas_payment_id: paymentData.id,
         asaas_customer_id: asaasCustomerId,
-        tipo: 'funcao_extra',
+        tipo: tipo === 'publicacao_vaga' ? 'publicacao_vaga' : 'funcao_extra',
         valor,
         status: 'pendente',
         pix_qr_code: pixData.encodedImage,
         pix_copia_cola: pixData.payload,
         pix_expiracao: pixData.expirationDate,
-        metadata: { nome_funcao: nome_funcao || null },
+        metadata: {
+          nome_funcao: nome_funcao || null,
+          vaga_id: vaga_id || null,
+          plano_id: plano_id || null,
+        },
       })
       .select()
       .single();

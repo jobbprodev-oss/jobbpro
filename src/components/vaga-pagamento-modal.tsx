@@ -23,12 +23,14 @@ export default function VagaPagamentoModal({
   const [planoSelecionado, setPlanoSelecionado] = useState<Plano | null>(null);
   const [loading, setLoading] = useState(false);
   const [pixData, setPixData] = useState<{
+    pagamento_id: string;
     asaas_payment_id: string;
     qr_code: string;
     copia_cola: string;
     valor: number;
   } | null>(null);
   const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
+  const [vagaId, setVagaId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -74,6 +76,9 @@ export default function VagaPagamentoModal({
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) throw new Error('Sessão não encontrada');
 
+      const idVaga = vagaId || await salvarVagaAguardandoPagamento();
+      setVagaId(idVaga);
+
       const response = await fetch('/api/pagamentos/pix', {
         method: 'POST',
         headers: {
@@ -81,8 +86,10 @@ export default function VagaPagamentoModal({
           Authorization: `Bearer ${sessionData.session.access_token}`,
         },
         body: JSON.stringify({
+          tipo: 'publicacao_vaga',
           plano_id: planoSelecionado.id,
           descricao: `Publicação de vaga: ${vagaData.titulo}`,
+          vaga_id: idVaga,
         }),
       });
 
@@ -100,8 +107,8 @@ export default function VagaPagamentoModal({
           if (statusData.status === 'confirmado') {
             clearInterval(interval);
             setPagamentoConfirmado(true);
-            // Publicar vaga após pagamento
-            await publicarVaga();
+            onSuccess();
+            onClose();
           }
         } catch {}
       }, 5000);
@@ -112,10 +119,9 @@ export default function VagaPagamentoModal({
     }
   };
 
-  const publicarVaga = async () => {
-    try {
+  const salvarVagaAguardandoPagamento = async () => {
       const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
+      if (!userData.user) throw new Error('Usuário não autenticado');
 
       // Buscar perfil do contratante
       const { data: perfil } = await supabase
@@ -126,8 +132,7 @@ export default function VagaPagamentoModal({
 
       if (!perfil) throw new Error('Perfil não encontrado');
 
-      // Inserir vaga
-      const { error } = await supabase.from('vagas').insert({
+      const { data: vagaCriada, error } = await supabase.from('vagas').insert({
         contratante_id: perfil.id,
         titulo: vagaData.titulo,
         funcao_principal: vagaData.funcao_principal,
@@ -143,16 +148,14 @@ export default function VagaPagamentoModal({
         valor_oferecido: parseFloat(vagaData.valor_oferecido),
         vestimenta: vagaData.vestimenta,
         descricao: vagaData.descricao,
+        ativa: false,
         vagas_disponiveis: 1,
         termo_aceite: vagaData.termo_aceite,
-      });
+      }).select('id').single();
 
       if (error) throw error;
-      onSuccess();
-      onClose();
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao publicar vaga');
-    }
+      console.log('[VAGA_PIX] Vaga salva aguardando pagamento:', vagaCriada.id);
+      return vagaCriada.id;
   };
 
   if (!isOpen) return null;

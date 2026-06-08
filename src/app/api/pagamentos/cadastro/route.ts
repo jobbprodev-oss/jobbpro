@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { ASAAS_API_URL, getAsaasKey, mapAsaasStatus, consultarEProcessarPagamento } from '@/lib/pagamentos-server';
 
 let _client: SupabaseClient | null = null;
 function getAdmin(): SupabaseClient {
@@ -8,16 +9,6 @@ function getAdmin(): SupabaseClient {
   }
   return _client;
 }
-
-function getAsaasKey() {
-  const rawKey = process.env.ASAAS_API_KEY || '';
-  if (!rawKey) {
-    throw new Error('Chave do Asaas não configurada. Configure ASAAS_API_KEY nas variáveis de ambiente.');
-  }
-  return rawKey.startsWith('$') ? rawKey : `$${rawKey}`;
-}
-
-const ASAAS_API_URL = 'https://sandbox.asaas.com/api/v3';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,6 +106,34 @@ export async function POST(request: NextRequest) {
       throw new Error(pixData.errors?.[0]?.description || 'Erro ao gerar QR Code PIX');
     }
 
+    if (user_id) {
+      const { data: existente } = await getAdmin()
+        .from('pagamentos')
+        .select('id')
+        .eq('asaas_payment_id', paymentData.id)
+        .maybeSingle();
+
+      if (!existente) {
+        await getAdmin().from('pagamentos').insert({
+          user_id,
+          asaas_payment_id: paymentData.id,
+          asaas_customer_id: asaasCustomerId,
+          tipo: 'cadastro',
+          valor,
+          status: 'pendente',
+          pix_qr_code: pixData.encodedImage,
+          pix_copia_cola: pixData.payload,
+          pix_expiracao: pixData.expirationDate,
+          metadata: {
+            tipo_usuario,
+            plano_id: plano.id,
+            duracao_dias: plano.duracao_dias,
+          },
+        });
+        console.log('[CADASTRO_PIX] Pagamento pendente salvo:', paymentData.id);
+      }
+    }
+
     return NextResponse.json({
       asaas_payment_id: paymentData.id,
       qr_code: pixData.encodedImage,
@@ -149,8 +168,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ status: 'PENDING' });
     }
 
-    const confirmados = ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'];
-    const status = confirmados.includes(asaasData.status) ? 'CONFIRMED' : asaasData.status;
+    const mapped = mapAsaasStatus(asaasData.status);
+
+    const { data: pagamento } = await getAdmin()
+      .from('pagamentos')
+      .select('*')
+      .eq('asaas_payment_id', paymentId)
+      .maybeSingle();
+
+    if (pagamento) {
+      const statusBanco = await consultarEProcessarPagamento(getAdmin(), pagamento);
+      return NextResponse.json({ status: statusBanco === 'confirmado' ? 'CONFIRMED' : statusBanco.toUpperCase() });
+    }
+
+    const status = mapped === 'confirmado' ? 'CONFIRMED' : asaasData.status;
 
     return NextResponse.json({ status });
   } catch (err: any) {

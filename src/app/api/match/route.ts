@@ -113,6 +113,22 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'aceitar' || action === 'recusar') {
+      if (action === 'aceitar') {
+        const { data: matchAtivo } = await getSupabaseAdmin()
+          .from('matches')
+          .select('id, prestador_id, status')
+          .eq('vaga_id', vaga_id)
+          .in('status', ['aceito', 'confirmado'])
+          .neq('prestador_id', prestador_id)
+          .maybeSingle();
+
+        if (matchAtivo) {
+          return NextResponse.json({
+            error: 'Você já possui uma negociação ativa para esta vaga. Conclua ou recuse a negociação atual antes de aceitar outro prestador.',
+          }, { status: 409 });
+        }
+      }
+
       // Captura status atual antes de alterar (necessário para saber se precisa decrementar)
       let statusAnterior: string | null = null;
       if (action === 'recusar') {

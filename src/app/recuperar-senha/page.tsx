@@ -20,8 +20,9 @@ export default function RecuperarSenhaPage() {
 
     setLoading(true);
     try {
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.jobbpro.com.br';
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/nova-senha`,
+        redirectTo: `${baseUrl}/nova-senha`,
       });
       if (error) throw error;
       setEnviado(true);

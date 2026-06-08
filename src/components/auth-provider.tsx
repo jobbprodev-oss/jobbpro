@@ -19,6 +19,15 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         const { data: { session } } = await supabase.auth.getSession();
 
         if (session?.user) {
+          try {
+            await fetch('/api/pagamentos/sincronizar', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            });
+          } catch (e) {
+            console.error('[AUTH] Erro ao sincronizar pagamentos:', e);
+          }
+
           // Buscar via API server-side (bypass RLS)
           let userData: any = null;
           try {
