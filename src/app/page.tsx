@@ -90,6 +90,10 @@ export default function HomePage() {
         <p className="text-white/50 text-sm">
           © 2026 JOBBPRO. Todos os direitos reservados.
         </p>
+        <p className="text-white/60 text-xs mt-2">
+          JOBBPRO<br />
+          Contato: atendimento@jobbpro.com.br
+        </p>
       </footer>
     </div>
   );
