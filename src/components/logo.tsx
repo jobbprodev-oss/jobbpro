@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useState } from 'react';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -34,6 +35,7 @@ export default function Logo({
 }: LogoProps) {
   const { width, height } = sizes[size];
   const textSize = textSizes[size];
+  const [imgSrc, setImgSrc] = useState('/logo.png');
   
   // Logo container com fundo apropriado
   const bgClass = variant === 'light' 
@@ -48,16 +50,24 @@ export default function Logo({
       ? 'text-white' 
       : 'text-brand-600';
 
+  const handleError = () => {
+    // Fallback para SVG se PNG não existir
+    if (imgSrc === '/logo.png') {
+      setImgSrc('/logo.svg');
+    }
+  };
+
   const content = (
     <div className={`flex items-center gap-2 ${className}`}>
       <div className={`${bgClass} rounded-lg flex items-center justify-center overflow-hidden`} style={{ width, height }}>
         <Image
-          src="/logo.png"
+          src={imgSrc}
           alt="JOBBPRO"
           width={width}
           height={height}
           className="object-contain w-full h-full"
           priority
+          onError={handleError}
         />
       </div>
       {showText && (
@@ -82,16 +92,24 @@ export default function Logo({
 // Versão simplificada só com a imagem
 export function LogoIcon({ size = 'md', className = '' }: { size?: 'sm' | 'md' | 'lg' | 'xl'; className?: string }) {
   const { width, height } = sizes[size];
+  const [imgSrc, setImgSrc] = useState('/logo.png');
+
+  const handleError = () => {
+    if (imgSrc === '/logo.png') {
+      setImgSrc('/logo.svg');
+    }
+  };
   
   return (
     <div className={`rounded-lg overflow-hidden ${className}`} style={{ width, height }}>
       <Image
-        src="/logo.png"
+        src={imgSrc}
         alt="JOBBPRO"
         width={width}
         height={height}
         className="object-contain w-full h-full"
         priority
+        onError={handleError}
       />
     </div>
   );
