@@ -161,14 +161,25 @@ export async function POST(request: NextRequest) {
     }
     console.log('[PIX] QR Code gerado com sucesso');
 
+    // Determinar tipo do pagamento
+    let paymentTipo = 'funcao_extra';
+    if (tipo === 'publicacao_vaga') paymentTipo = 'publicacao_vaga';
+    else if (tipo === 'disponibilidade') paymentTipo = 'disponibilidade';
+
     // 4. Salvar no banco
+    const { data: planoData } = await getAdmin()
+      .from('planos')
+      .select('duracao_horas')
+      .eq('id', plano_id)
+      .maybeSingle();
+
     const { data: pagamento, error: dbError } = await getAdmin()
       .from('pagamentos')
       .insert({
         user_id: authUser.id,
         asaas_payment_id: paymentData.id,
         asaas_customer_id: asaasCustomerId,
-        tipo: tipo === 'publicacao_vaga' ? 'publicacao_vaga' : 'funcao_extra',
+        tipo: paymentTipo,
         valor,
         status: 'pendente',
         pix_qr_code: pixData.encodedImage,
@@ -178,6 +189,7 @@ export async function POST(request: NextRequest) {
           nome_funcao: nome_funcao || null,
           vaga_id: vaga_id || null,
           plano_id: plano_id || null,
+          duracao_horas: planoData?.duracao_horas || 24,
         },
       })
       .select()

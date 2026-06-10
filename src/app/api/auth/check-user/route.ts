@@ -27,18 +27,23 @@ export async function POST(request: NextRequest) {
     // 1. Buscar usuário na tabela users por ID
     const { data: userById } = await admin
       .from('users')
-      .select('id, tipo, email')
+      .select('id, tipo, email, plano_ativo, plano_id, plano_expira_em')
       .eq('id', userId)
       .maybeSingle();
 
     if (userById) {
-      return NextResponse.json({ tipo: userById.tipo });
+      return NextResponse.json({
+        tipo: userById.tipo,
+        plano_ativo: userById.plano_ativo,
+        plano_id: userById.plano_id,
+        plano_expira_em: userById.plano_expira_em,
+      });
     }
 
     // 2. Buscar por email (ID pode estar diferente)
     const { data: userByEmail } = await admin
       .from('users')
-      .select('id, tipo, email')
+      .select('id, tipo, email, plano_ativo, plano_id, plano_expira_em')
       .eq('email', email)
       .maybeSingle();
 
@@ -51,7 +56,12 @@ export async function POST(request: NextRequest) {
       if (updateErr) {
         console.error('[CHECK-USER] Erro ao atualizar ID:', updateErr);
       }
-      return NextResponse.json({ tipo: userByEmail.tipo });
+      return NextResponse.json({
+        tipo: userByEmail.tipo,
+        plano_ativo: userByEmail.plano_ativo,
+        plano_id: userByEmail.plano_id,
+        plano_expira_em: userByEmail.plano_expira_em,
+      });
     }
 
     // 3. Usuário não existe na tabela users - verificar se é admin
@@ -74,7 +84,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ tipo: null });
       }
 
-      return NextResponse.json({ tipo: 'admin' });
+      return NextResponse.json({ tipo: 'admin', plano_ativo: true });
     }
 
     // 4. Não é admin e não existe - precisa cadastro

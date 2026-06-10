@@ -281,58 +281,59 @@ export default function RegisterPrestadorPage() {
       if (fotoFile) fotoUrl = await uploadImage(fotoFile, 'avatars', userId);
       if (docFile) docUrl = await uploadImage(docFile, 'documentos', userId);
 
-      const [upsertRes, perfilRes] = await Promise.all([
-        fetch('/api/users/query', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'upsert',
-            record: {
-              id: userId,
-              tipo: 'prestador',
-              nome: form.nome,
-              cpf_cnpj: form.cpf.replace(/\D/g, ''),
-              rg: form.rg,
-              data_nascimento: form.data_nascimento || null,
-              celular: form.celular.replace(/\D/g, ''),
-              email: form.email.trim().toLowerCase(),
-              cep: form.cep,
-              endereco: form.endereco,
-              numero: form.numero,
-              complemento: form.complemento,
-              bairro: form.bairro,
-              cidade: form.cidade,
-              estado: form.estado,
-              foto_url: fotoUrl,
-              foto_documento_url: docUrl,
-              indicacao: form.indicacao,
-              indicacao_nome: form.indicacao ? form.indicacao_nome : null,
-              indicacao_telefone: form.indicacao ? form.indicacao_telefone.replace(/\D/g, '') : null,
-              termo_aceite: form.termo_aceite,
-              plano_ativo: false,
-            },
-          }),
+      // PASSO 2a: Salvar usuário PRIMEIRO (sequencial para evitar FK error)
+      const upsertRes = await fetch('/api/users/query', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'upsert',
+          record: {
+            id: userId,
+            tipo: 'prestador',
+            nome: form.nome,
+            cpf_cnpj: form.cpf.replace(/\D/g, ''),
+            rg: form.rg,
+            data_nascimento: form.data_nascimento || null,
+            celular: form.celular.replace(/\D/g, ''),
+            email: form.email.trim().toLowerCase(),
+            cep: form.cep,
+            endereco: form.endereco,
+            numero: form.numero,
+            complemento: form.complemento,
+            bairro: form.bairro,
+            cidade: form.cidade,
+            estado: form.estado,
+            foto_url: fotoUrl,
+            foto_documento_url: docUrl,
+            indicacao: form.indicacao,
+            indicacao_nome: form.indicacao ? form.indicacao_nome : null,
+            indicacao_telefone: form.indicacao ? form.indicacao_telefone.replace(/\D/g, '') : null,
+            termo_aceite: form.termo_aceite,
+            plano_ativo: false,
+          },
         }),
-        fetch('/api/users/query', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'upsertPrestadorPerfil',
-            record: {
-              user_id: userId,
-              funcao_principal: form.funcao_principal,
-              funcao_2: form.funcao_2 || null,
-              funcao_3: form.funcao_3 || null,
-              valor_pretendido: form.valor_pretendido ? parseFloat(form.valor_pretendido) : null,
-              vestimenta: form.vestimenta,
-              aceita_negociacao: form.aceita_negociacao,
-              descricao: form.descricao,
-            },
-          }),
-        }),
-      ]);
+      });
       const { error: userError } = await upsertRes.json();
       if (userError) throw new Error(userError);
+
+      // PASSO 2b: Salvar perfil do prestador DEPOIS do usuário (evita FK violation)
+      const perfilRes = await fetch('/api/users/query', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'upsertPrestadorPerfil',
+          record: {
+            user_id: userId,
+            funcao_principal: form.funcao_principal,
+            funcao_2: form.funcao_2 || null,
+            funcao_3: form.funcao_3 || null,
+            valor_pretendido: form.valor_pretendido ? parseFloat(form.valor_pretendido) : null,
+            vestimenta: form.vestimenta,
+              aceita_negociacao: form.aceita_negociacao,
+            descricao: form.descricao,
+          },
+        }),
+      });
       const { error: perfilError } = await perfilRes.json();
       if (perfilError) throw new Error(perfilError);
 

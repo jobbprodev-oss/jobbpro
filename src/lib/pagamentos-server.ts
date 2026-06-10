@@ -59,6 +59,39 @@ export async function processarPagamentoConfirmado(admin: SupabaseClient, pagame
       .update({ plano_id: pagamento.metadata.plano_id, plano_ativo: true, plano_expira_em: expira.toISOString() })
       .eq('id', pagamento.user_id);
   }
+
+  if (pagamento.tipo === 'disponibilidade' && pagamento.metadata?.plano_id) {
+    console.log('[PAGAMENTO_PROCESSAR] Disponibilidade liberada:', pagamento.user_id);
+    // Buscar perfil do prestador
+    const { data: perfil } = await admin
+      .from('prestador_perfil')
+      .select('id')
+      .eq('user_id', pagamento.user_id)
+      .single();
+
+    if (perfil && pagamento.metadata.duracao_horas) {
+      const duracaoHoras = pagamento.metadata.duracao_horas;
+      const agora = new Date();
+      const fimDate = new Date(agora.getTime() + duracaoHoras * 60 * 60 * 1000);
+
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const dataStr = agora.toISOString().split('T')[0];
+      const inicioStr = `${pad(agora.getHours())}:${pad(agora.getMinutes())}`;
+      const fimStr = `${pad(fimDate.getHours())}:${pad(fimDate.getMinutes())}`;
+      const expiresAt = fimDate.toISOString();
+
+      await admin.from('disponibilidades').insert({
+        prestador_id: perfil.id,
+        data: dataStr,
+        horario_inicio: inicioStr,
+        horario_fim: fimStr,
+        disponivel: true,
+        plano_id: pagamento.metadata.plano_id,
+        expires_at: expiresAt,
+      });
+      console.log('[PAGAMENTO_PROCESSAR] Disponibilidade criada para prestador:', perfil.id);
+    }
+  }
 }
 
 export async function consultarEProcessarPagamento(admin: SupabaseClient, pagamento: any) {

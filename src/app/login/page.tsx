@@ -25,6 +25,12 @@ export default function LoginPage() {
           body: JSON.stringify({ userId: session.user.id, email: session.user.email }),
         }).then(r => r.json()).then(data => {
           if (data.tipo) {
+            // Verificar se o plano está ativo
+            if (data.plano_ativo === false) {
+              toast.error('Seu pagamento está pendente. Complete o pagamento para acessar.');
+              window.location.href = '/register/tipo';
+              return;
+            }
             const destino = data.tipo === 'admin' ? '/admin' : `/dashboard/${data.tipo}`;
             window.location.href = destino;
           }
@@ -67,6 +73,14 @@ export default function LoginPage() {
         console.log('[LOGIN] check-user result:', checkData);
 
         if (checkData.tipo) {
+          // Verificar se o plano está ativo
+          if (checkData.plano_ativo === false) {
+            console.log('[LOGIN] Plano inativo, redirecionando para pagamento');
+            toast.error('Seu pagamento está pendente. Complete o pagamento para acessar.');
+            window.location.href = '/register/tipo';
+            return;
+          }
+
           const destino = checkData.tipo === 'admin' ? '/admin' : `/dashboard/${checkData.tipo}`;
           console.log('[LOGIN] Redirecionando para:', destino);
           toast.success('Login realizado!');

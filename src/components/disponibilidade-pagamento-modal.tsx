@@ -73,6 +73,7 @@ export default function DisponibilidadePagamentoModal({
           Authorization: `Bearer ${sessionData.session.access_token}`,
         },
         body: JSON.stringify({
+          tipo: 'disponibilidade',
           plano_id: planoSelecionado.id,
           descricao: `Disponibilidade ${planoSelecionado.duracao_horas ?? 24}h`,
         }),
