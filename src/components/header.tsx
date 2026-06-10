@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Bell, LogOut, Briefcase } from 'lucide-react';
+import { ArrowLeft, Bell, LogOut } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
+import { LogoIcon } from '@/components/logo';
 
 interface HeaderProps {
   title?: string;
@@ -34,9 +35,7 @@ export default function Header({ title, showBack = false, showNotifications = tr
             </button>
           ) : (
             <Link href={user ? `/dashboard/${user.tipo}` : '/'} className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
-                <Briefcase className="w-4 h-4 text-white" />
-              </div>
+              <LogoIcon size="sm" />
             </Link>
           )}
           {title && <h1 className="text-base font-semibold text-gray-900 truncate">{title}</h1>}

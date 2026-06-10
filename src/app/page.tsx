@@ -1,19 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { Briefcase, Users, Zap, Star, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Users, Zap, Star, ArrowRight, CheckCircle2, Building2 } from 'lucide-react';
+import Logo from '@/components/logo';
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-600 via-brand-700 to-brand-900">
       {/* Header */}
       <header className="px-4 pt-6 pb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
-            <Briefcase className="w-6 h-6 text-brand-600" />
-          </div>
-          <span className="text-xl font-bold text-white">JOBBPRO</span>
-        </div>
+        <Logo size="md" variant="dark" href="/" />
         <Link href="/login" className="text-white/90 hover:text-white font-medium text-sm">
           Entrar
         </Link>
@@ -46,7 +42,7 @@ export default function HomePage() {
             href="/register/contratante"
             className="btn-secondary flex items-center justify-center gap-2 border-brand-600 text-brand-600 hover:bg-brand-50"
           >
-            <Briefcase className="w-5 h-5" />
+            <Building2 className="w-5 h-5" />
             Sou Contratante
             <ArrowRight className="w-4 h-4" />
           </Link>

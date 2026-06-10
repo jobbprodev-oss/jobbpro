@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lock, Briefcase, Loader2, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Lock, Loader2, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
+import Logo from '@/components/logo';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
@@ -64,12 +65,7 @@ export default function NovaSenhaPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-600 to-brand-800 flex flex-col">
       <div className="px-6 pt-8 pb-4">
-        <Link href="/login" className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
-            <Briefcase className="w-6 h-6 text-brand-600" />
-          </div>
-          <span className="text-xl font-bold text-white">JOBBPRO</span>
-        </Link>
+        <Logo size="md" variant="dark" href="/login" />
       </div>
 
       <div className="flex-1 flex flex-col justify-center px-6 pb-12">

@@ -1,18 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { Briefcase, HardHat, Building2, ArrowRight } from 'lucide-react';
+import { HardHat, Building2, ArrowRight } from 'lucide-react';
+import Logo from '@/components/logo';
 
 export default function RegisterTipoPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-600 to-brand-800 flex flex-col">
       <div className="px-6 pt-8 pb-4">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
-            <Briefcase className="w-6 h-6 text-brand-600" />
-          </div>
-          <span className="text-xl font-bold text-white">JOBBPRO</span>
-        </Link>
+        <Logo size="md" variant="dark" href="/" />
       </div>
 
       <div className="flex-1 flex flex-col justify-center px-6 pb-12">
