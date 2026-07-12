@@ -1,6 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 
-export const ASAAS_API_URL = 'https://sandbox.asaas.com/api/v3';
+export const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://api.asaas.com/v3';
 
 export function getAsaasKey() {
   const rawKey = process.env.ASAAS_API_KEY || '';
