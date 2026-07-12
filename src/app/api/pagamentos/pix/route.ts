@@ -85,9 +85,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Criar ou buscar customer no Asaas
-    let asaasCustomerId: string;
+    let asaasCustomerId = '';
 
-    // Verificar se já tem customer
+    // Verificar se já tem customer salvo no banco
     const { data: pagamentoExistente } = await getAdmin()
       .from('pagamentos')
       .select('asaas_customer_id')
@@ -96,11 +96,41 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .maybeSingle();
 
+    let customerValido = false;
     if (pagamentoExistente?.asaas_customer_id) {
-      asaasCustomerId = pagamentoExistente.asaas_customer_id;
-      console.log('[PIX] Customer existente:', asaasCustomerId);
-    } else {
-      // Criar customer
+      // Validar se o customer ainda existe no Asaas atual (pode ser ID do sandbox)
+      const checkRes = await fetch(`${ASAAS_API_URL}/customers/${pagamentoExistente.asaas_customer_id}`, {
+        headers: { access_token: ASAAS_API_KEY },
+        cache: 'no-store',
+      });
+      if (checkRes.ok) {
+        asaasCustomerId = pagamentoExistente.asaas_customer_id;
+        customerValido = true;
+        console.log('[PIX] Customer existente válido:', asaasCustomerId);
+      } else {
+        console.log('[PIX] Customer salvo inválido neste ambiente, criando novo:', pagamentoExistente.asaas_customer_id);
+      }
+    }
+
+    if (!customerValido) {
+      // Buscar por CPF no Asaas antes de criar
+      const cpfLimpo = userData.cpf_cnpj?.replace(/\D/g, '');
+      if (cpfLimpo) {
+        const searchRes = await fetch(`${ASAAS_API_URL}/customers?cpfCnpj=${cpfLimpo}`, {
+          headers: { access_token: ASAAS_API_KEY },
+          cache: 'no-store',
+        });
+        const searchData = await searchRes.json().catch(() => null);
+        if (searchData?.data?.[0]?.id) {
+          asaasCustomerId = searchData.data[0].id;
+          customerValido = true;
+          console.log('[PIX] Customer encontrado por CPF:', asaasCustomerId);
+        }
+      }
+    }
+
+    if (!customerValido) {
+      // Criar novo customer
       const customerBody = {
         name: userData.nome,
         email: userData.email,
