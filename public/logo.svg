@@ -1,7 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">
-  <!-- Placeholder do Logo JOBBPRO - Substituir por logo.png -->
-  <rect x="5" y="5" width="50" height="50" rx="8" fill="#1e40af"/>
-  <circle cx="20" cy="25" r="8" fill="#f97316"/>
-  <path d="M 15 40 Q 30 50 45 40" stroke="white" stroke-width="3" fill="none"/>
-  <text x="65" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#1e40af">JOBBPRO</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 80">
+  <!-- Ícone dos dois bonecos (versão simplificada) -->
+  <!-- Cabeça esquerda (azul escuro) -->
+  <circle cx="16" cy="12" r="8" fill="#1a3557"/>
+  <!-- Corpo/braço esquerdo -->
+  <path d="M4 60 C4 40 9 32 16 32 C22 32 26 36 28 43 L35 48"
+        stroke="#1a3557" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <!-- Cabeça direita (laranja) -->
+  <circle cx="50" cy="12" r="8" fill="#f5821f"/>
+  <!-- Corpo/braço direito -->
+  <path d="M62 60 C62 40 57 32 50 32 C44 32 40 36 38 43 L35 48"
+        stroke="#f5821f" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <!-- Ponto de conexão -->
+  <circle cx="35" cy="48" r="5" fill="#1a3557"/>
+  <circle cx="35" cy="48" r="3" fill="#f5821f"/>
+  <!-- Texto JOBB (azul escuro) -->
+  <text x="80" y="48" font-family="Arial Black, Arial, sans-serif" font-size="34" font-weight="900" fill="#1a3557">JOBB</text>
+  <!-- Texto PRO (laranja) -->
+  <text x="181" y="48" font-family="Arial Black, Arial, sans-serif" font-size="34" font-weight="900" fill="#f5821f">PRO</text>
 </svg>

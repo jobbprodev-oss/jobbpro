@@ -97,13 +97,13 @@ export default function NovaVagaPage() {
   return (
     <AuthProvider>
     <div className="min-h-screen bg-gray-50">
-      <Header title="Nova Vaga" showBack />
+      <Header title="Nova Oportunidade" showBack />
 
       <div className="page-container space-y-4">
-        <h2 className="section-title">Detalhes da Vaga</h2>
+        <h2 className="section-title">Detalhes da Oportunidade</h2>
 
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-1 block">Título da Vaga *</label>
+          <label className="text-sm font-medium text-gray-700 mb-1 block">Título da Oportunidade *</label>
           <input type="text" value={form.titulo} onChange={(e) => updateForm('titulo', e.target.value)} className="input-field" placeholder="Ex: Garçom para evento corporativo" />
         </div>
         <div>
@@ -203,7 +203,7 @@ export default function NovaVagaPage() {
         </div>
         <div>
           <label className="text-sm font-medium text-gray-700 mb-1 block">Descrição</label>
-          <textarea value={form.descricao} onChange={(e) => updateForm('descricao', e.target.value)} className="input-field min-h-[100px] resize-none" placeholder="Descreva a vaga..." />
+          <textarea value={form.descricao} onChange={(e) => updateForm('descricao', e.target.value)} className="input-field min-h-[100px] resize-none" placeholder="Descreva a oportunidade..." />
         </div>
 
         <div className="card p-4">
@@ -218,7 +218,7 @@ export default function NovaVagaPage() {
 
         <button onClick={handleSubmit} disabled={loading} className="btn-success w-full flex items-center justify-center gap-2">
           {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
-          {loading ? 'Publicando...' : 'Publicar Vaga'}
+          {loading ? 'Publicando...' : 'Publicar Oportunidade'}
         </button>
 
         <VagaPagamentoModal

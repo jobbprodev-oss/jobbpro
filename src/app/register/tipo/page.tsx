@@ -8,7 +8,7 @@ export default function RegisterTipoPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-600 to-brand-800 flex flex-col">
       <div className="px-6 pt-8 pb-4">
-        <Logo size="md" variant="dark" href="/" />
+        <Logo size="lg" variant="dark" href="/" />
       </div>
 
       <div className="flex-1 flex flex-col justify-center px-6 pb-12">

@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { criarNotificacao } from '@/lib/notificacoes';
 
 let _client: SupabaseClient | null = null;
 function getAdmin(): SupabaseClient {
@@ -114,22 +115,22 @@ export async function PUT(request: NextRequest) {
       if (insertErr && insertErr.code !== '23505') throw insertErr;
 
       // Notificar solicitante
-      await getAdmin().from('notificacoes').insert({
-        user_id: solicitacao.solicitante_id,
-        titulo: 'Função aprovada!',
-        mensagem: `Sua solicitação da função "${solicitacao.nome_funcao}" foi aprovada${nomeFinal !== solicitacao.nome_funcao ? ` como "${nomeFinal}"` : ''}! Ela já está disponível na plataforma.`,
-        tipo: 'solicitacao_funcao',
-        link: '/perfil/editar',
-      });
+      await criarNotificacao(
+        solicitacao.solicitante_id,
+        'Função aprovada!',
+        `Sua solicitação da função "${solicitacao.nome_funcao}" foi aprovada${nomeFinal !== solicitacao.nome_funcao ? ` como "${nomeFinal}"` : ''}! Ela já está disponível na plataforma.`,
+        'solicitacao_funcao',
+        '/perfil/editar'
+      );
     } else {
       // Notificar solicitante
-      await getAdmin().from('notificacoes').insert({
-        user_id: solicitacao.solicitante_id,
-        titulo: 'Função não aprovada',
-        mensagem: `Sua solicitação da função "${solicitacao.nome_funcao}" não foi aprovada.${motivo_rejeicao ? ` Motivo: ${motivo_rejeicao}` : ''}`,
-        tipo: 'solicitacao_funcao',
-        link: '/perfil/editar',
-      });
+      await criarNotificacao(
+        solicitacao.solicitante_id,
+        'Função não aprovada',
+        `Sua solicitação da função "${solicitacao.nome_funcao}" não foi aprovada.${motivo_rejeicao ? ` Motivo: ${motivo_rejeicao}` : ''}`,
+        'solicitacao_funcao',
+        '/perfil/editar'
+      );
     }
 
     return NextResponse.json({ success: true });

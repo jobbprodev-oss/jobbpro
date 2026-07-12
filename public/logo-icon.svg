@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60">
+  <!-- Fundo branco com bordas arredondadas -->
+  <rect width="60" height="60" rx="12" fill="white"/>
+  <!-- Cabeça esquerda (azul escuro) -->
+  <circle cx="15" cy="11" r="6.5" fill="#1a3557"/>
+  <!-- Corpo/braço esquerdo (azul escuro) -->
+  <path d="M5 52 C5 36 9 27 15 27 C20 27 23 30 25 35 L30 39"
+        stroke="#1a3557" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Cabeça direita (laranja) -->
+  <circle cx="45" cy="11" r="6.5" fill="#f5821f"/>
+  <!-- Corpo/braço direito (laranja) -->
+  <path d="M55 52 C55 36 51 27 45 27 C40 27 37 30 35 35 L30 39"
+        stroke="#f5821f" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Ponto de conexão/aperto de mãos -->
+  <circle cx="30" cy="39" r="4" fill="#1a3557"/>
+  <circle cx="30" cy="39" r="2.5" fill="#f5821f"/>
+</svg>

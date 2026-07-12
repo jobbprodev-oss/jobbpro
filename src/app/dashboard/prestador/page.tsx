@@ -116,7 +116,7 @@ export default function DashboardPrestadorPage() {
 
           {/* Vagas compatíveis */}
           <div className="flex items-center justify-between mb-3">
-            <h3 className="section-title mb-0">Vagas para você</h3>
+            <h3 className="section-title mb-0">Oportunidades para você</h3>
             <span className="text-sm text-gray-400">{vagas.length} encontradas</span>
           </div>
 
@@ -127,7 +127,7 @@ export default function DashboardPrestadorPage() {
           ) : vagas.length === 0 ? (
             <div className="text-center py-12">
               <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">Nenhuma vaga compatível no momento</p>
+              <p className="text-gray-500 font-medium">Nenhuma oportunidade compatível no momento</p>
               <p className="text-gray-400 text-sm mt-1">Configure sua disponibilidade para receber matches</p>
             </div>
           ) : (

@@ -92,9 +92,7 @@ export default function DisponibilidadePagamentoModal({
           const statusData = await statusRes.json();
           if (statusData.status === 'confirmado') {
             clearInterval(interval);
-            setPagamentoConfirmado(true);
-            // Salvar disponibilidade após pagamento
-            await salvarDisponibilidade();
+            mostrarSucesso();
           }
         } catch {}
       }, 5000);
@@ -118,8 +116,7 @@ export default function DisponibilidadePagamentoModal({
       const statusData = await statusRes.json();
       
       if (statusData.status === 'confirmado') {
-        setPagamentoConfirmado(true);
-        await salvarDisponibilidade();
+        mostrarSucesso();
       } else {
         toast('Pagamento ainda não confirmado. Tente novamente em alguns instantes.', { icon: '⏳' });
       }
@@ -130,49 +127,16 @@ export default function DisponibilidadePagamentoModal({
     }
   };
 
-  const salvarDisponibilidade = async () => {
-    try {
-      const { data: userData, error: authError } = await supabase.auth.getUser();
-      if (authError || !userData.user) throw new Error('Usuário não autenticado');
-
-      const { data: perfil, error: perfilError } = await supabase
-        .from('prestador_perfil')
-        .select('id')
-        .eq('user_id', userData.user.id)
-        .single();
-
-      if (perfilError || !perfil) throw new Error('Perfil não encontrado');
-
-      const duracaoHoras = planoSelecionado?.duracao_horas ?? 24;
-      const agora = new Date();
-      const fimDate = new Date(agora.getTime() + duracaoHoras * 60 * 60 * 1000);
-
-      const pad = (n: number) => String(n).padStart(2, '0');
-      const dataStr = agora.toISOString().split('T')[0];
-      const inicioStr = `${pad(agora.getHours())}:${pad(agora.getMinutes())}`;
-      const fimStr = `${pad(fimDate.getHours())}:${pad(fimDate.getMinutes())}`;
-      const expiresAt = fimDate.toISOString();
-
-      const { error: insertError } = await supabase.from('disponibilidades').insert({
-        prestador_id: perfil.id,
-        data: dataStr,
-        horario_inicio: inicioStr,
-        horario_fim: fimStr,
-        disponivel: true,
-        plano_id: planoSelecionado?.id ?? null,
-        expires_at: expiresAt,
-      });
-
-      if (insertError) throw insertError;
-
-      const fmtDT = (d: Date) =>
-        `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} às ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-      setValidadeInfo({ inicio: fmtDT(agora), fim: fmtDT(fimDate) });
-
-      onSuccess();
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao salvar disponibilidade');
-    }
+  const mostrarSucesso = () => {
+    if (pagamentoConfirmado) return;
+    const duracaoHoras = planoSelecionado?.duracao_horas ?? 24;
+    const agora = new Date();
+    const fimDate = new Date(agora.getTime() + duracaoHoras * 60 * 60 * 1000);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const fmtDT = (d: Date) =>
+      `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} às ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    setValidadeInfo({ inicio: fmtDT(agora), fim: fmtDT(fimDate) });
+    setPagamentoConfirmado(true);
   };
 
   if (!isOpen) return null;
@@ -317,7 +281,7 @@ export default function DisponibilidadePagamentoModal({
               ) : (
                 <p className="text-sm text-gray-500">Sua disponibilidade foi cadastrada com sucesso.</p>
               )}
-              <button onClick={onClose} className="btn-primary w-full">Fechar</button>
+              <button onClick={onSuccess} className="btn-primary w-full">Fechar</button>
             </div>
           )}
         </div>

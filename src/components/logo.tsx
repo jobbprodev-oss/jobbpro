@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -12,69 +11,55 @@ interface LogoProps {
   className?: string;
 }
 
+// Dimensões proporcionais ao viewBox 280x80 do SVG (razão 3.5:1)
 const sizes = {
-  sm: { width: 32, height: 32 },
-  md: { width: 40, height: 40 },
-  lg: { width: 48, height: 48 },
-  xl: { width: 64, height: 64 },
+  sm: { width: 140, height: 40 },
+  md: { width: 175, height: 50 },
+  lg: { width: 210, height: 60 },
+  xl: { width: 280, height: 80 },
 };
 
 const textSizes = {
-  sm: 'text-lg',
-  md: 'text-xl',
-  lg: 'text-2xl',
-  xl: 'text-3xl',
+  sm: 'text-base',
+  md: 'text-lg',
+  lg: 'text-xl',
+  xl: 'text-2xl',
+};
+
+const iconSizes = {
+  sm: 36,
+  md: 44,
+  lg: 56,
+  xl: 72,
 };
 
 export default function Logo({ 
   size = 'md', 
   variant = 'color', 
-  showText = true, 
+  showText = false, 
   href,
   className = '' 
 }: LogoProps) {
-  const { width, height } = sizes[size];
-  const textSize = textSizes[size];
-  const [imgSrc, setImgSrc] = useState('/logo.png');
-  
-  // Logo container com fundo apropriado
-  const bgClass = variant === 'light' 
-    ? 'bg-white' 
-    : variant === 'dark' 
-      ? 'bg-brand-600' 
-      : 'bg-white';
-  
-  const textClass = variant === 'light' 
-    ? 'text-brand-600' 
-    : variant === 'dark' 
-      ? 'text-white' 
-      : 'text-brand-600';
+  const { width } = sizes[size];
+  const [imgSrc, setImgSrc] = useState('/logo.jpeg');
 
-  const handleError = () => {
-    // Fallback para SVG se PNG não existir
-    if (imgSrc === '/logo.png') {
-      setImgSrc('/logo.svg');
-    }
-  };
+  // Em fundo escuro: container branco arredondado para a logo ficar legível
+  const wrapperClass = variant === 'dark'
+    ? 'bg-white rounded-xl px-3 py-2 inline-flex items-center'
+    : 'inline-flex items-center';
 
   const content = (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <div className={`${bgClass} rounded-lg flex items-center justify-center overflow-hidden`} style={{ width, height }}>
-        <Image
-          src={imgSrc}
-          alt="JOBBPRO"
-          width={width}
-          height={height}
-          className="object-contain w-full h-full"
-          priority
-          onError={handleError}
-        />
-      </div>
-      {showText && (
-        <span className={`font-bold ${textSize} ${textClass}`}>
-          JOBBPRO
-        </span>
-      )}
+    <div className={`${wrapperClass} ${className}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={imgSrc}
+        alt="JOBBPRO"
+        width={width}
+        height="auto"
+        style={{ width, height: 'auto', display: 'block' }}
+        className="object-contain"
+        onError={() => { if (imgSrc === '/logo.jpeg') setImgSrc('/logo.svg'); }}
+      />
     </div>
   );
 
@@ -89,28 +74,28 @@ export default function Logo({
   return content;
 }
 
-// Versão simplificada só com a imagem
-export function LogoIcon({ size = 'md', className = '' }: { size?: 'sm' | 'md' | 'lg' | 'xl'; className?: string }) {
-  const { width, height } = sizes[size];
-  const [imgSrc, setImgSrc] = useState('/logo.png');
+// Versão para uso no header interno — logo retangular com altura fixa
+export function LogoIcon({ size = 'md', variant = 'color', href, className = '' }: { size?: 'sm' | 'md' | 'lg' | 'xl'; variant?: 'light' | 'dark' | 'color'; href?: string; className?: string }) {
+  const px = iconSizes[size];
+  const [imgSrc, setImgSrc] = useState('/logo.jpeg');
 
-  const handleError = () => {
-    if (imgSrc === '/logo.png') {
-      setImgSrc('/logo.svg');
-    }
-  };
-  
-  return (
-    <div className={`rounded-lg overflow-hidden ${className}`} style={{ width, height }}>
-      <Image
+  const content = (
+    <div className={`inline-flex items-center ${className}`} style={{ height: px }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src={imgSrc}
         alt="JOBBPRO"
-        width={width}
-        height={height}
-        className="object-contain w-full h-full"
-        priority
-        onError={handleError}
+        height={px}
+        style={{ height: px, width: 'auto', display: 'block' }}
+        className="object-contain"
+        onError={() => { if (imgSrc === '/logo.jpeg') setImgSrc('/logo.svg'); }}
       />
     </div>
   );
+
+  if (href) {
+    return <Link href={href} className="inline-block">{content}</Link>;
+  }
+
+  return content;
 }

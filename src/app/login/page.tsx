@@ -25,14 +25,16 @@ export default function LoginPage() {
           body: JSON.stringify({ userId: session.user.id, email: session.user.email }),
         }).then(r => r.json()).then(data => {
           if (data.tipo) {
-            // Verificar se o plano está ativo
-            if (data.plano_ativo === false) {
-              toast.error('Seu pagamento está pendente. Complete o pagamento para acessar.');
-              window.location.href = '/register/tipo';
+            // Admin sempre vai direto para o painel, sem verificação de plano
+            if (data.tipo === 'admin') {
+              window.location.href = '/admin';
               return;
             }
-            const destino = data.tipo === 'admin' ? '/admin' : `/dashboard/${data.tipo}`;
-            window.location.href = destino;
+            if (data.plano_ativo === false) {
+              window.location.href = '/pagamento-pendente';
+              return;
+            }
+            window.location.href = `/dashboard/${data.tipo}`;
           }
         }).catch(() => {});
       }
@@ -73,18 +75,22 @@ export default function LoginPage() {
         console.log('[LOGIN] check-user result:', checkData);
 
         if (checkData.tipo) {
-          // Verificar se o plano está ativo
-          if (checkData.plano_ativo === false) {
-            console.log('[LOGIN] Plano inativo, redirecionando para pagamento');
-            toast.error('Seu pagamento está pendente. Complete o pagamento para acessar.');
-            window.location.href = '/register/tipo';
+          // Admin sempre vai direto para o painel, sem verificação de plano
+          if (checkData.tipo === 'admin') {
+            toast.success('Login realizado!');
+            window.location.href = '/admin';
             return;
           }
 
-          const destino = checkData.tipo === 'admin' ? '/admin' : `/dashboard/${checkData.tipo}`;
-          console.log('[LOGIN] Redirecionando para:', destino);
+          if (checkData.plano_ativo === false) {
+            console.log('[LOGIN] Plano inativo, redirecionando para pagamento pendente');
+            window.location.href = '/pagamento-pendente';
+            return;
+          }
+
+          console.log('[LOGIN] Redirecionando para:', `/dashboard/${checkData.tipo}`);
           toast.success('Login realizado!');
-          window.location.href = destino;
+          window.location.href = `/dashboard/${checkData.tipo}`;
           return;
         } else {
           console.log('[LOGIN] Sem userData, indo para registro');
@@ -108,7 +114,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-600 to-brand-800 flex flex-col">
       <div className="px-6 pt-8 pb-4">
-        <Logo size="md" variant="dark" href="/" />
+        <Logo size="lg" variant="dark" href="/" />
       </div>
 
       <div className="flex-1 flex flex-col justify-center px-6 pb-12">

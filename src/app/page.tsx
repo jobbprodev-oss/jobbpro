@@ -8,8 +8,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-600 via-brand-700 to-brand-900">
       {/* Header */}
-      <header className="px-4 pt-6 pb-2 flex items-center justify-between">
-        <Logo size="md" variant="dark" href="/" />
+      <header className="px-6 pt-8 pb-2 flex items-center justify-between">
+        <Logo size="lg" variant="dark" href="/" />
         <Link href="/login" className="text-white/90 hover:text-white font-medium text-sm">
           Entrar
         </Link>

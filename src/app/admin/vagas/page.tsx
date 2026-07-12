@@ -55,12 +55,12 @@ export default function AdminVagasPage() {
   };
 
   const deletarVaga = async (vagaId: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta vaga?')) return;
+    if (!confirm('Tem certeza que deseja excluir esta oportunidade?')) return;
     try {
       const { error } = await supabase.from('vagas').delete().eq('id', vagaId);
       if (error) throw error;
       setVagas((prev) => prev.filter((v) => v.id !== vagaId));
-      toast.success('Vaga excluída');
+      toast.success('Oportunidade excluída');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao excluir');
     }
@@ -91,7 +91,7 @@ export default function AdminVagasPage() {
               </Link>
               <div className="flex items-center gap-2">
                 <Briefcase className="w-5 h-5 text-emerald-400" />
-                <h1 className="text-lg font-bold">Vagas</h1>
+                <h1 className="text-lg font-bold">Oportunidades</h1>
               </div>
               <span className="text-sm text-gray-500 ml-auto">{filtradas.length} registros</span>
             </div>
@@ -127,7 +127,7 @@ export default function AdminVagasPage() {
             ) : filtradas.length === 0 ? (
               <div className="text-center py-20">
                 <Briefcase className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-500">Nenhuma vaga encontrada</p>
+                <p className="text-gray-500">Nenhuma oportunidade encontrada</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -139,7 +139,7 @@ export default function AdminVagasPage() {
                       <th className="pb-3 font-medium hidden sm:table-cell">Cidade</th>
                       <th className="pb-3 font-medium hidden md:table-cell">Data</th>
                       <th className="pb-3 font-medium">Valor</th>
-                      <th className="pb-3 font-medium">Vagas</th>
+                      <th className="pb-3 font-medium">Oportunidades</th>
                       <th className="pb-3 font-medium">Status</th>
                       <th className="pb-3 font-medium text-right">Ações</th>
                     </tr>

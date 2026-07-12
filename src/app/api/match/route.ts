@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { criarNotificacao } from '@/lib/notificacoes';
 
 let _client: SupabaseClient | null = null;
 
@@ -13,10 +14,6 @@ function getSupabaseAdmin(): SupabaseClient {
   return _client;
 }
 
-async function criarNotificacao(userId: string, titulo: string, mensagem: string, tipo: string, link?: string) {
-  const { error } = await getSupabaseAdmin().from('notificacoes').insert({ user_id: userId, titulo, mensagem, tipo, link });
-  if (error) console.error('[NOTIFICACAO] Erro ao criar:', error);
-}
 
 export const dynamic = 'force-dynamic';
 
@@ -103,7 +100,7 @@ export async function POST(request: NextRequest) {
         await criarNotificacao(
           contratanteUser.user_id,
           'Novo interesse',
-          `${nomePrestador} demonstrou interesse na vaga "${vaga.titulo}"`,
+          `${nomePrestador} demonstrou interesse na oportunidade "${vaga.titulo}"`,
           'match',
           `/dashboard/contratante/matches`
         );
@@ -124,7 +121,7 @@ export async function POST(request: NextRequest) {
 
         if (matchAtivo) {
           return NextResponse.json({
-            error: 'Você já possui uma negociação ativa para esta vaga. Conclua ou recuse a negociação atual antes de aceitar outro prestador.',
+            error: 'Você já possui uma negociação ativa para esta oportunidade. Conclua ou recuse a negociação atual antes de aceitar outro prestador.',
           }, { status: 409 });
         }
       }
@@ -192,8 +189,8 @@ export async function POST(request: NextRequest) {
           prestadorInfo.user_id,
           action === 'aceitar' ? 'Match aceito!' : 'Match recusado',
           action === 'aceitar'
-            ? `Seu interesse na vaga "${vagaInfo?.titulo}" foi aceito!`
-            : `Seu interesse na vaga "${vagaInfo?.titulo}" foi recusado.`,
+            ? `Seu interesse na oportunidade "${vagaInfo?.titulo}" foi aceito!`
+            : `Seu interesse na oportunidade "${vagaInfo?.titulo}" foi recusado.`,
           'match',
           `/dashboard/prestador/matches`
         );
@@ -214,6 +211,42 @@ export async function POST(request: NextRequest) {
 
       if (error) throw error;
 
+      // Auto-recusar todos os outros matches (pendente ou aceito) da mesma vaga
+      // Regra: só recusa os outros quando AMBOS aceitaram (status = confirmado)
+      const { data: outrosMatches } = await getSupabaseAdmin()
+        .from('matches')
+        .select('id, prestador_id')
+        .eq('vaga_id', vaga_id)
+        .neq('prestador_id', prestador_id)
+        .in('status', ['pendente', 'aceito']);
+
+      if (outrosMatches && outrosMatches.length > 0) {
+        await getSupabaseAdmin()
+          .from('matches')
+          .update({ status: 'recusado' })
+          .eq('vaga_id', vaga_id)
+          .neq('prestador_id', prestador_id)
+          .in('status', ['pendente', 'aceito']);
+
+        const vagaTitulo = (data as any).vagas?.titulo || 'a vaga';
+        for (const outro of outrosMatches) {
+          const { data: pInfo } = await getSupabaseAdmin()
+            .from('prestador_perfil')
+            .select('user_id')
+            .eq('id', outro.prestador_id)
+            .single();
+          if (pInfo) {
+            await criarNotificacao(
+              pInfo.user_id,
+              'Oportunidade preenchida',
+              `A oportunidade "${vagaTitulo}" foi preenchida por outro prestador.`,
+              'match',
+              `/dashboard/prestador/matches`
+            );
+          }
+        }
+      }
+
       // Notificar contratante que prestador confirmou
       const contId = (data as any).vagas?.contratante_id || (data as any).contratante_id;
       const { data: contUser } = await getSupabaseAdmin()
@@ -225,7 +258,7 @@ export async function POST(request: NextRequest) {
         await criarNotificacao(
           contUser.user_id,
           'Presença confirmada',
-          `${nome} confirmou presença na vaga "${(data as any).vagas?.titulo}"`,
+          `${nome} confirmou presença na oportunidade "${(data as any).vagas?.titulo}"`,
           'match',
           `/dashboard/contratante/matches`
         );

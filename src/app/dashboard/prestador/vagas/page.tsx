@@ -71,7 +71,7 @@ export default function PrestadorVagasPage() {
         </div>
       ) : (
         <div className="min-h-screen bg-gray-50">
-          <Header title="Buscar Vagas" />
+          <Header title="Buscar Oportunidades" />
 
           <div className="page-container">
             <div className="flex items-center gap-2 mb-4">
@@ -91,7 +91,7 @@ export default function PrestadorVagasPage() {
                   </span>
                 )}
               </button>
-              <span className="text-sm text-gray-400 ml-auto">{vagas.length} vagas encontradas</span>
+              <span className="text-sm text-gray-400 ml-auto">{vagas.length} oportunidades encontradas</span>
             </div>
 
             {showFilters && (
@@ -140,7 +140,7 @@ export default function PrestadorVagasPage() {
             ) : vagas.length === 0 ? (
               <div className="text-center py-12">
                 <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 font-medium">Nenhuma vaga encontrada</p>
+                <p className="text-gray-500 font-medium">Nenhuma oportunidade encontrada</p>
                 <p className="text-gray-400 text-sm mt-1">Tente alterar os filtros</p>
               </div>
             ) : (

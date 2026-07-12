@@ -17,14 +17,14 @@ export default function BottomNav() {
   const navItems = isPrestador
     ? [
         { href: '/dashboard/prestador', icon: Home, label: 'Início' },
-        { href: '/dashboard/prestador/vagas', icon: Search, label: 'Vagas' },
+        { href: '/dashboard/prestador/vagas', icon: Search, label: 'Oportunidades' },
         { href: '/dashboard/prestador/disponibilidade', icon: CalendarDays, label: 'Agenda' },
         { href: '/dashboard/prestador/matches', icon: ClipboardList, label: 'Contratos' },
         { href: '/perfil', icon: User, label: 'Perfil' },
       ]
     : [
         { href: '/dashboard/contratante', icon: Home, label: 'Início' },
-        { href: '/dashboard/contratante/nova-vaga', icon: PlusCircle, label: 'Nova Vaga' },
+        { href: '/dashboard/contratante/nova-vaga', icon: PlusCircle, label: 'Nova Oportunidade' },
         { href: '/dashboard/contratante/matches', icon: ClipboardList, label: 'Contratos', badge: matchBadge },
         { href: '/perfil', icon: User, label: 'Perfil' },
       ];

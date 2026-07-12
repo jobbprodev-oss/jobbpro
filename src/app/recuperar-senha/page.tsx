@@ -21,9 +21,8 @@ export default function RecuperarSenhaPage() {
 
     setLoading(true);
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.jobbpro.com.br';
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${baseUrl}/nova-senha`,
+        redirectTo: `${window.location.origin}/nova-senha`,
       });
       if (error) throw error;
       setEnviado(true);
@@ -37,7 +36,7 @@ export default function RecuperarSenhaPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-600 to-brand-800 flex flex-col">
       <div className="px-6 pt-8 pb-4">
-        <Logo size="md" variant="dark" href="/login" />
+        <Logo size="lg" variant="dark" href="/login" />
       </div>
 
       <div className="flex-1 flex flex-col justify-center px-6 pb-12">

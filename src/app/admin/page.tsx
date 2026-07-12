@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import AuthProvider from '@/components/auth-provider';
-import { Loader2, Users, Briefcase, ClipboardList, Star, Shield, LogOut, TrendingUp, AlertTriangle, CreditCard, Tag, Bell, FileText, UserPlus } from 'lucide-react';
+import { Loader2, Users, Briefcase, ClipboardList, Star, Shield, LogOut, TrendingUp, AlertTriangle, CreditCard, Tag, Bell, FileText, UserPlus, Users2, MessageSquare } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Stats {
@@ -210,7 +210,7 @@ export default function AdminDashboardPage() {
                 <StatCard icon={Users} label="Total Usuários" value={stats.totalUsers} color="blue" />
                 <StatCard icon={Users} label="Prestadores" value={stats.totalPrestadores} color="emerald" />
                 <StatCard icon={Users} label="Contratantes" value={stats.totalContratantes} color="violet" />
-                <StatCard icon={Briefcase} label="Vagas" value={stats.totalVagas} sub={`${stats.vagasAtivas} ativas`} color="yellow" />
+                <StatCard icon={Briefcase} label="Oportunidades" value={stats.totalVagas} sub={`${stats.vagasAtivas} ativas`} color="yellow" />
                 <StatCard icon={ClipboardList} label="Matches" value={stats.totalMatches} color="blue" />
                 <StatCard icon={AlertTriangle} label="Pendentes" value={stats.matchesPendentes} color="yellow" />
                 <StatCard icon={TrendingUp} label="Concluídos" value={stats.matchesConcluidos} color="emerald" />
@@ -238,8 +238,8 @@ export default function AdminDashboardPage() {
               </Link>
               <Link href="/admin/vagas" className="bg-gray-800 border border-gray-700 rounded-xl p-5 hover:border-brand-500 transition-colors group">
                 <Briefcase className="w-8 h-8 text-emerald-400 mb-3 group-hover:scale-110 transition-transform" />
-                <h4 className="font-semibold text-white">Vagas</h4>
-                <p className="text-sm text-gray-400 mt-1">Visualizar e gerenciar vagas</p>
+                <h4 className="font-semibold text-white">Oportunidades</h4>
+                <p className="text-sm text-gray-400 mt-1">Visualizar e gerenciar oportunidades</p>
               </Link>
               <Link href="/admin/matches" className="bg-gray-800 border border-gray-700 rounded-xl p-5 hover:border-brand-500 transition-colors group">
                 <ClipboardList className="w-8 h-8 text-yellow-400 mb-3 group-hover:scale-110 transition-transform" />
@@ -255,6 +255,16 @@ export default function AdminDashboardPage() {
                 <Shield className="w-8 h-8 text-pink-400 mb-3 group-hover:scale-110 transition-transform" />
                 <h4 className="font-semibold text-white">Administradores</h4>
                 <p className="text-sm text-gray-400 mt-1">Gerenciar acessos administrativos</p>
+              </Link>
+              <Link href="/admin/indicacoes" className="bg-gray-800 border border-gray-700 rounded-xl p-5 hover:border-brand-500 transition-colors group">
+                <Users2 className="w-8 h-8 text-pink-400 mb-3 group-hover:scale-110 transition-transform" />
+                <h4 className="font-semibold text-white">Indicações</h4>
+                <p className="text-sm text-gray-400 mt-1">Visualizar todas as indicações realizadas</p>
+              </Link>
+              <Link href="/admin/whatsapp-logs" className="bg-gray-800 border border-gray-700 rounded-xl p-5 hover:border-brand-500 transition-colors group">
+                <MessageSquare className="w-8 h-8 text-green-400 mb-3 group-hover:scale-110 transition-transform" />
+                <h4 className="font-semibold text-white">Logs WhatsApp</h4>
+                <p className="text-sm text-gray-400 mt-1">Monitorar envios via NotificaMais</p>
               </Link>
             </div>
           </div>

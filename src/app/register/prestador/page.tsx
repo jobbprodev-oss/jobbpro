@@ -108,6 +108,10 @@ export default function RegisterPrestadorPage() {
           toast.error('Preencha nome, CPF, celular e e-mail');
           return false;
         }
+        if (form.celular.replace(/\D/g, '').length < 10 || form.celular.replace(/\D/g, '').length > 11) {
+          toast.error('Celular inválido. Informe DDD + número (ex: 11 99999-9999)');
+          return false;
+        }
         if (!form.senha || form.senha.length < 6) {
           toast.error('A senha deve ter pelo menos 6 caracteres');
           return false;
@@ -184,12 +188,17 @@ export default function RegisterPrestadorPage() {
         const res = await fetch('/api/users/query', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'emailExists', email: form.email.trim().toLowerCase() }),
+          body: JSON.stringify({ action: 'getByEmail', email: form.email.trim().toLowerCase() }),
         });
-        const data = await res.json();
-        if (data.exists) {
-          toast.error('Este e-mail já está cadastrado. Faça login ou use outro e-mail.');
-          return;
+        const { data: existingUser } = await res.json();
+        if (existingUser) {
+          if (existingUser.plano_ativo === true) {
+            // Conta ativa — bloqueia
+            toast.error('E-mail já cadastrado e ativo. Faça login para acessar sua conta.');
+            return;
+          }
+          // Cadastro pendente — avisa mas deixa continuar para corrigir os dados
+          toast('Cadastro pendente encontrado. Prossiga para corrigir seus dados e retomar o pagamento.', { duration: 5000 });
         }
       } catch {
         // falha silenciosa — não bloqueia o cadastro
@@ -222,7 +231,31 @@ export default function RegisterPrestadorPage() {
           emailRes.json(), cpfRes.json(), celularRes.json(),
         ]);
         if (emailData.exists) {
-          toast.error('Este e-mail já está cadastrado. Utilize outro e-mail ou faça login.');
+          // Conta já existe — tenta logar, atualiza dados corrigidos e redireciona
+          const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+            email: form.email.trim(),
+            password: form.senha,
+          });
+          if (!loginError && loginData.user) {
+            // Atualiza celular, cpf e nome corrigidos antes de redirecionar
+            await fetch('/api/users/query', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'update',
+                userId: loginData.user.id,
+                record: {
+                  celular: form.celular.replace(/\D/g, ''),
+                  cpf_cnpj: form.cpf.replace(/\D/g, ''),
+                  nome: form.nome,
+                },
+              }),
+            });
+            toast.success('Dados atualizados. Complete o pagamento para ativar sua conta.');
+            router.push('/pagamento-pendente');
+            return;
+          }
+          toast.error('E-mail já cadastrado. Faça login ou use "Esqueci a senha" para recuperar o acesso.');
           return;
         }
         if (cpfData.exists) {

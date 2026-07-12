@@ -77,7 +77,7 @@ export default function VagaDetailPage() {
     return (
       <AuthProvider>
       <div className="min-h-screen bg-gray-50">
-        <Header title="Detalhes da Vaga" showBack />
+        <Header title="Detalhes da Oportunidade" showBack />
         <div className="flex justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
         </div>
@@ -90,9 +90,9 @@ export default function VagaDetailPage() {
     return (
       <AuthProvider>
       <div className="min-h-screen bg-gray-50">
-        <Header title="Vaga" showBack />
+        <Header title="Oportunidade" showBack />
         <div className="text-center py-20">
-          <p className="text-gray-500">Vaga não encontrada</p>
+          <p className="text-gray-500">Oportunidade não encontrada</p>
         </div>
       </div>
       </AuthProvider>
@@ -102,7 +102,7 @@ export default function VagaDetailPage() {
   return (
     <AuthProvider>
     <div className="min-h-screen bg-gray-50">
-      <Header title="Detalhes da Vaga" showBack />
+      <Header title="Detalhes da Oportunidade" showBack />
 
       <div className="page-container">
         <div className="card p-5 mb-4">
@@ -151,7 +151,7 @@ export default function VagaDetailPage() {
             </div>
             <div className="flex items-center gap-3">
               <Users className="w-4 h-4 text-gray-400" />
-              <span>{vaga.vagas_preenchidas > 0 ? 'Vaga preenchida' : 'Vaga disponível'}</span>
+              <span>{vaga.vagas_preenchidas > 0 ? 'Oportunidade preenchida' : 'Oportunidade disponível'}</span>
             </div>
           </div>
         </div>
@@ -248,7 +248,7 @@ export default function VagaDetailPage() {
             ) : (
               <Heart className="w-5 h-5" />
             )}
-            {enviando ? 'Enviando...' : 'Tenho Interesse nesta Vaga'}
+            {enviando ? 'Enviando...' : 'Tenho Interesse nesta Oportunidade'}
           </button>
           )
           ) : (
@@ -312,7 +312,7 @@ export default function VagaDetailPage() {
               setJaEnviou(true);
             } catch (err: any) {
               if (err.message?.includes('já existe')) {
-                toast.error('Você já demonstrou interesse nesta vaga');
+                toast.error('Você já demonstrou interesse nesta oportunidade');
                 setJaEnviou(true);
               } else {
                 toast.error(err.message || 'Erro ao enviar interesse');

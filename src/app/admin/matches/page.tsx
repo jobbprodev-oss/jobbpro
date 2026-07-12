@@ -108,7 +108,7 @@ export default function AdminMatchesPage() {
                   type="text"
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
-                  placeholder="Buscar por vaga, prestador ou contratante..."
+                  placeholder="Buscar por oportunidade, prestador ou contratante..."
                   className="w-full pl-10 pr-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-brand-500"
                 />
               </div>
@@ -141,7 +141,7 @@ export default function AdminMatchesPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-gray-400 border-b border-gray-800">
-                      <th className="pb-3 font-medium">Vaga</th>
+                      <th className="pb-3 font-medium">Oportunidade</th>
                       <th className="pb-3 font-medium">Prestador</th>
                       <th className="pb-3 font-medium hidden sm:table-cell">Contratante</th>
                       <th className="pb-3 font-medium">Score</th>

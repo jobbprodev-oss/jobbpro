@@ -20,20 +20,39 @@ export default function NovaSenhaPage() {
   const [pronto, setPronto] = useState(false);
 
   useEffect(() => {
-    // Supabase injeta o token via hash na URL; precisamos aguardar o onAuthStateChange
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setPronto(true);
       }
     });
 
-    // Verificar erro no hash (link expirado, inválido, etc.)
-    const hash = typeof window !== 'undefined' ? window.location.hash : '';
-    if (hash.includes('error=')) {
-      const params = new URLSearchParams(hash.replace('#', ''));
-      setErro('Link expirado ou inválido. Solicite uma nova redefinição de senha.');
-    }
+    const init = async () => {
+      // Fluxo PKCE: Supabase v2 envia ?code= na URL
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          setErro('Link expirado ou inválido. Solicite uma nova redefinição de senha.');
+        }
+        // Limpar o code da URL sem recarregar
+        window.history.replaceState({}, '', window.location.pathname);
+        return;
+      }
 
+      // Fluxo implícito: token no hash (#access_token=...&type=recovery)
+      const hash = window.location.hash;
+      if (hash.includes('error=')) {
+        setErro('Link expirado ou inválido. Solicite uma nova redefinição de senha.');
+      } else if (hash.includes('type=recovery') || hash.includes('access_token=')) {
+        // O onAuthStateChange vai disparar PASSWORD_RECOVERY — nada a fazer aqui
+      } else if (!hash && !code) {
+        // Acesso direto sem token — link inválido ou expirado
+        setErro('Link inválido. Acesse o link enviado por e-mail para redefinir sua senha.');
+      }
+    };
+
+    init();
     return () => subscription.unsubscribe();
   }, []);
 
@@ -65,7 +84,7 @@ export default function NovaSenhaPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-600 to-brand-800 flex flex-col">
       <div className="px-6 pt-8 pb-4">
-        <Logo size="md" variant="dark" href="/login" />
+        <Logo size="lg" variant="dark" href="/login" />
       </div>
 
       <div className="flex-1 flex flex-col justify-center px-6 pb-12">

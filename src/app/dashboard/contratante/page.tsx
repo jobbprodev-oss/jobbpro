@@ -57,7 +57,7 @@ export default function DashboardContratantePage() {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-amber-900 text-sm">Novo interesse recebido!</p>
-                  <p className="text-xs text-amber-700">{matchPendentes} prestador{matchPendentes > 1 ? 'es demonstraram' : ' demonstrou'} interesse nas suas vagas. Toque para ver.</p>
+                  <p className="text-xs text-amber-700">{matchPendentes} prestador{matchPendentes > 1 ? 'es demonstraram' : ' demonstrou'} interesse nas suas oportunidades. Toque para ver.</p>
                 </div>
                 <span className="w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center flex-shrink-0">
                   {matchPendentes > 9 ? '9+' : matchPendentes}
@@ -72,7 +72,7 @@ export default function DashboardContratantePage() {
               <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100">
                 <div className="text-center flex-1">
                   <p className="text-2xl font-bold text-brand-600">{vagas.filter(v => v.ativa).length}</p>
-                  <p className="text-xs text-gray-500">Vagas ativas</p>
+                  <p className="text-xs text-gray-500">Oportunidades ativas</p>
                 </div>
                 <div className="text-center flex-1">
                   <p className="text-2xl font-bold text-emerald-600">{contratantePerfil?.total_contratacoes || 0}</p>
@@ -87,13 +87,13 @@ export default function DashboardContratantePage() {
                 <PlusCircle className="w-6 h-6 text-brand-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-brand-700">Publicar Nova Vaga</h3>
+                <h3 className="font-semibold text-brand-700">Publicar Nova Oportunidade</h3>
                 <p className="text-sm text-brand-500">Encontre profissionais compatíveis</p>
               </div>
             </Link>
 
             {/* Minhas Vagas */}
-            <h3 className="section-title">Minhas Vagas</h3>
+            <h3 className="section-title">Minhas Oportunidades</h3>
 
             {loading ? (
               <div className="flex justify-center py-12">
@@ -102,8 +102,8 @@ export default function DashboardContratantePage() {
             ) : vagas.length === 0 ? (
               <div className="text-center py-12">
                 <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 font-medium">Nenhuma vaga publicada</p>
-                <p className="text-gray-400 text-sm mt-1">Publique sua primeira vaga</p>
+                <p className="text-gray-500 font-medium">Nenhuma oportunidade publicada</p>
+                <p className="text-gray-400 text-sm mt-1">Publique sua primeira oportunidade</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -125,7 +125,7 @@ export default function DashboardContratantePage() {
                     <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-500">
                       <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{formatDate(vaga.data)}</span>
                       <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{vaga.cidade || vaga.local_servico}</span>
-                      <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{vaga.vagas_preenchidas > 0 ? 'Vaga preenchida' : 'Vaga disponível'}</span>
+                      <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{vaga.vagas_preenchidas > 0 ? 'Oportunidade preenchida' : 'Oportunidade disponível'}</span>
                     </div>
                     <p className="text-lg font-bold text-emerald-600 mt-2">{formatCurrency(vaga.valor_oferecido)}</p>
                   </Link>

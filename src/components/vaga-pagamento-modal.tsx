@@ -88,7 +88,7 @@ export default function VagaPagamentoModal({
         body: JSON.stringify({
           tipo: 'publicacao_vaga',
           plano_id: planoSelecionado.id,
-          descricao: `Publicação de vaga: ${vagaData.titulo}`,
+          descricao: `Publicação de oportunidade: ${vagaData.titulo}`,
           vaga_id: idVaga,
         }),
       });
@@ -164,7 +164,7 @@ export default function VagaPagamentoModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
       <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Publicar Vaga - Pagamento</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Publicar Oportunidade - Pagamento</h2>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100">
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -172,7 +172,7 @@ export default function VagaPagamentoModal({
 
         <div className="p-4 space-y-4">
           <div className="text-center">
-            <p className="text-sm text-gray-500 mb-1">Vaga a ser publicada</p>
+            <p className="text-sm text-gray-500 mb-1">Oportunidade a ser publicada</p>
             <p className="font-medium text-gray-900 text-sm">{vagaData.titulo}</p>
             <p className="text-xs text-gray-500 mt-1">
               {new Date(vagaData.data + 'T00:00:00').toLocaleDateString('pt-BR')} • {vagaData.horario_inicio} - {vagaData.horario_fim}
@@ -240,7 +240,7 @@ export default function VagaPagamentoModal({
             <div className="space-y-4">
               <div className="text-center">
                 <p className="text-2xl font-bold text-gray-900">R$ {pixData.valor.toFixed(2).replace('.', ',')}</p>
-                <p className="text-xs text-gray-400 mt-1">Pague via PIX para publicar a vaga</p>
+                <p className="text-xs text-gray-400 mt-1">Pague via PIX para publicar a oportunidade</p>
               </div>
 
               <div className="flex justify-center">
@@ -273,7 +273,7 @@ export default function VagaPagamentoModal({
                 <CheckCircle2 className="w-8 h-8 text-emerald-600" />
               </div>
               <h3 className="text-lg font-bold text-gray-900">Pagamento confirmado!</h3>
-              <p className="text-sm text-gray-500">Sua vaga foi publicada com sucesso.</p>
+              <p className="text-sm text-gray-500">Sua oportunidade foi publicada com sucesso.</p>
             </div>
           )}
         </div>

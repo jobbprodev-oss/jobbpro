@@ -35,7 +35,7 @@ export default function Header({ title, showBack = false, showNotifications = tr
             </button>
           ) : (
             <Link href={user ? `/dashboard/${user.tipo}` : '/'} className="flex items-center gap-2">
-              <LogoIcon size="sm" />
+              <LogoIcon size="md" />
             </Link>
           )}
           {title && <h1 className="text-base font-semibold text-gray-900 truncate">{title}</h1>}
