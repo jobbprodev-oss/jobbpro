@@ -27,7 +27,11 @@ AS $$
 BEGIN
   RETURN QUERY
   WITH pi AS (
-    SELECT pp.funcao_principal AS f1, pp.funcao_2 AS f2, pp.funcao_3 AS f3
+    -- Todas as funções ativas do prestador (principal + extras compradas), normalizadas
+    SELECT ARRAY_REMOVE(ARRAY[
+      LOWER(pp.funcao_principal), LOWER(pp.funcao_2), LOWER(pp.funcao_3),
+      LOWER(pp.funcao_4), LOWER(pp.funcao_5), LOWER(pp.funcao_6)
+    ], NULL) AS funcoes
     FROM prestador_perfil pp WHERE pp.id = prestador_uuid
   )
   SELECT 
@@ -43,14 +47,11 @@ BEGIN
     v.valor_oferecido,
     v.vestimenta,
     (
-      CASE WHEN LOWER(v.funcao_principal) = LOWER(pi.f1) THEN 40
-           WHEN pi.f2 IS NOT NULL AND LOWER(v.funcao_principal) = LOWER(pi.f2) THEN 30
-           WHEN pi.f3 IS NOT NULL AND LOWER(v.funcao_principal) = LOWER(pi.f3) THEN 20
-           ELSE 0 END
+      CASE WHEN LOWER(v.funcao_principal) = ANY(pi.funcoes) THEN 40 ELSE 0 END
       +
-      CASE WHEN v.funcao_2 IS NOT NULL AND LOWER(v.funcao_2) IN (LOWER(pi.f1), LOWER(COALESCE(pi.f2, '___')), LOWER(COALESCE(pi.f3, '___'))) THEN 15 ELSE 0 END
+      CASE WHEN v.funcao_2 IS NOT NULL AND LOWER(v.funcao_2) = ANY(pi.funcoes) THEN 15 ELSE 0 END
       +
-      CASE WHEN v.funcao_3 IS NOT NULL AND LOWER(v.funcao_3) IN (LOWER(pi.f1), LOWER(COALESCE(pi.f2, '___')), LOWER(COALESCE(pi.f3, '___'))) THEN 10 ELSE 0 END
+      CASE WHEN v.funcao_3 IS NOT NULL AND LOWER(v.funcao_3) = ANY(pi.funcoes) THEN 10 ELSE 0 END
     )::DECIMAL,
     u.nome,
     cp.media_avaliacao
@@ -62,19 +63,9 @@ BEGIN
     AND v.data >= CURRENT_DATE
     AND v.vagas_preenchidas < v.vagas_disponiveis
     AND (
-      LOWER(v.funcao_principal) = LOWER(pi.f1)
-      OR (pi.f2 IS NOT NULL AND LOWER(v.funcao_principal) = LOWER(pi.f2))
-      OR (pi.f3 IS NOT NULL AND LOWER(v.funcao_principal) = LOWER(pi.f3))
-      OR (v.funcao_2 IS NOT NULL AND (
-        LOWER(v.funcao_2) = LOWER(pi.f1)
-        OR (pi.f2 IS NOT NULL AND LOWER(v.funcao_2) = LOWER(pi.f2))
-        OR (pi.f3 IS NOT NULL AND LOWER(v.funcao_2) = LOWER(pi.f3))
-      ))
-      OR (v.funcao_3 IS NOT NULL AND (
-        LOWER(v.funcao_3) = LOWER(pi.f1)
-        OR (pi.f2 IS NOT NULL AND LOWER(v.funcao_3) = LOWER(pi.f2))
-        OR (pi.f3 IS NOT NULL AND LOWER(v.funcao_3) = LOWER(pi.f3))
-      ))
+      LOWER(v.funcao_principal) = ANY(pi.funcoes)
+      OR (v.funcao_2 IS NOT NULL AND LOWER(v.funcao_2) = ANY(pi.funcoes))
+      OR (v.funcao_3 IS NOT NULL AND LOWER(v.funcao_3) = ANY(pi.funcoes))
     )
     AND (
       (SELECT pp.disponivel FROM prestador_perfil pp WHERE pp.id = prestador_uuid)
