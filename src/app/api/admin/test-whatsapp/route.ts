@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const { data: u } = await admin.from('users').select('tipo').eq('id', user.id).single();
     if (u?.tipo !== 'admin') return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
 
-    const { phone } = await request.json();
+    const { phone, message } = await request.json();
     if (!phone) return NextResponse.json({ error: 'phone obrigatório' }, { status: 400 });
 
     const baseUrl = process.env.NOTIFICAMAIS_BASE_URL;
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       : `55${digits}`;
 
     const url = `${baseUrl}/message/send-text?instanceId=${instance}`;
-    const body = { phone: formattedPhone, message: 'Teste JOBBPRO ✅ Integração WhatsApp funcionando!', delayMessage: 0 };
+    const body = { phone: formattedPhone, message: message?.trim() || 'Teste JOBBPRO ✅ Integração WhatsApp funcionando!', delayMessage: 0 };
 
     const res = await fetch(url, {
       method: 'POST',

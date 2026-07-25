@@ -9,6 +9,7 @@ import AuthProvider from '@/components/auth-provider';
 import {
   Loader2, ArrowLeft, Search, MessageSquare,
   CheckCircle2, XCircle, Clock, RefreshCw,
+  Send, X,
 } from 'lucide-react';
 
 interface WhatsappLog {
@@ -68,6 +69,12 @@ export default function AdminWhatsappLogsPage() {
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
 
+  const [showTestModal, setShowTestModal] = useState(false);
+  const [testPhone, setTestPhone] = useState('');
+  const [testMessage, setTestMessage] = useState('Teste JOBBPRO ✅ Integração WhatsApp funcionando!');
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null);
+
   useEffect(() => {
     if (!authLoading && user) {
       if (user.tipo !== 'admin') { router.push('/'); return; }
@@ -106,6 +113,49 @@ export default function AdminWhatsappLogsPage() {
     return true;
   });
 
+  const abrirTestModal = () => {
+    setTestResult(null);
+    setShowTestModal(true);
+  };
+
+  const fecharTestModal = () => {
+    setShowTestModal(false);
+    setTestResult(null);
+  };
+
+  const enviarTeste = async () => {
+    if (!testPhone.trim()) return;
+    setTestLoading(true);
+    setTestResult(null);
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/admin/test-whatsapp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ phone: testPhone.trim(), message: testMessage.trim() }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setTestResult({ ok: true, text: 'Mensagem enviada com sucesso.' });
+      } else {
+        const erro =
+          data?.resposta?.message ||
+          data?.resposta?.error ||
+          data?.erro ||
+          (data?.etapa === 'env_vars' ? 'Variáveis do NotificaMais não configuradas.' : null) ||
+          `Falha ao enviar (HTTP ${data?.httpStatus ?? '?'})`;
+        setTestResult({ ok: false, text: erro });
+      }
+    } catch (err: any) {
+      setTestResult({ ok: false, text: err.message || 'Erro ao chamar a API de teste' });
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
   const totalEnviados = logs.filter((l) => l.status === 'sent').length;
   const totalFalharam = logs.filter((l) => l.status === 'failed').length;
   const totalPendentes = logs.filter((l) => l.status === 'pending').length;
@@ -128,9 +178,16 @@ export default function AdminWhatsappLogsPage() {
                 <h1 className="text-lg font-bold">Logs WhatsApp / NotificaMais</h1>
               </div>
               <button
+                onClick={abrirTestModal}
+                className="ml-auto flex items-center gap-2 px-3 py-1.5 bg-green-600/20 hover:bg-green-600/30 border border-green-600/40 rounded-lg text-sm text-green-400 transition-colors"
+              >
+                <Send className="w-4 h-4" />
+                Testar API
+              </button>
+              <button
                 onClick={fetchLogs}
                 disabled={loading}
-                className="ml-auto flex items-center gap-2 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-300 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-300 transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 Atualizar
@@ -288,6 +345,71 @@ export default function AdminWhatsappLogsPage() {
               </div>
             )}
           </div>
+
+          {/* Modal: Testar API */}
+          {showTestModal && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+              <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Send className="w-5 h-5 text-green-400" />
+                    Testar API
+                  </h2>
+                  <button onClick={fecharTestModal} className="p-1 rounded-lg hover:bg-gray-700 text-gray-400">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-gray-300 mb-1 block">Número de telefone</label>
+                    <input
+                      type="text"
+                      value={testPhone}
+                      onChange={(e) => setTestPhone(e.target.value)}
+                      placeholder="Ex: 5511999999999"
+                      className="w-full px-3 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-300 mb-1 block">Mensagem de teste</label>
+                    <textarea
+                      value={testMessage}
+                      onChange={(e) => setTestMessage(e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-brand-500 resize-none"
+                    />
+                  </div>
+
+                  {testResult && (
+                    <div
+                      className={`flex items-start gap-2 p-3 rounded-lg text-sm ${
+                        testResult.ok
+                          ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                          : 'bg-red-500/10 border border-red-500/30 text-red-400'
+                      }`}
+                    >
+                      {testResult.ok ? (
+                        <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      )}
+                      <span className="break-words">{testResult.text}</span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={enviarTeste}
+                    disabled={testLoading || !testPhone.trim()}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    {testLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    Enviar teste
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </AuthProvider>
