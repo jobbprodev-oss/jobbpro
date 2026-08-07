@@ -14,14 +14,24 @@ export function useFuncoes() {
       return;
     }
     (async () => {
-      const { data } = await supabase
-        .from('funcoes')
-        .select('nome')
-        .eq('ativa', true)
-        .order('nome');
-      const names = data?.map((f: any) => f.nome) || [];
-      _cache = names;
-      setFuncoes(names);
+      // Buscar TODAS as funções paginando (evita limite padrão de 1000 do PostgREST)
+      const PAGE_SIZE = 1000;
+      let allNames: string[] = [];
+      let from = 0;
+      while (true) {
+        const { data } = await supabase
+          .from('funcoes')
+          .select('nome')
+          .eq('ativa', true)
+          .order('nome')
+          .range(from, from + PAGE_SIZE - 1);
+        const names = data?.map((f: any) => f.nome) || [];
+        allNames = allNames.concat(names);
+        if (names.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+      _cache = allNames;
+      setFuncoes(allNames);
       setLoading(false);
     })();
   }, []);

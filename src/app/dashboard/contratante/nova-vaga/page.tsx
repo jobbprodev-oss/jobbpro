@@ -13,6 +13,7 @@ import { useFuncoes } from '@/hooks/useFuncoes';
 import SearchableSelect from '@/components/searchable-select';
 import SolicitarFuncaoModal from '@/components/solicitar-funcao-modal';
 import VagaPagamentoModal from '@/components/vaga-pagamento-modal';
+import LegalModal from '@/components/legal-modal';
 import { maskCEP } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -43,6 +44,7 @@ export default function NovaVagaPage() {
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [showSolicitarFuncao, setShowSolicitarFuncao] = useState(false);
   const [showPagamentoModal, setShowPagamentoModal] = useState(false);
+  const [showTermosModal, setShowTermosModal] = useState(false);
 
   const updateForm = (field: string, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -211,7 +213,7 @@ export default function NovaVagaPage() {
             <input type="checkbox" id="termos" checked={form.termo_aceite} onChange={(e) => updateForm('termo_aceite', e.target.checked)} className="w-5 h-5 mt-0.5 rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
             <label htmlFor="termos" className="text-sm text-gray-600">
               Confirmo que as informações são verdadeiras e aceito o{' '}
-              <a href="/termos" target="_blank" className="text-brand-600 font-medium underline">Termo de Uso</a> da plataforma.
+              <button type="button" onClick={() => setShowTermosModal(true)} className="text-brand-600 font-medium underline">Termo de Uso</button> da plataforma.
             </label>
           </div>
         </div>
@@ -229,6 +231,7 @@ export default function NovaVagaPage() {
             router.push('/dashboard/contratante');
           }}
         />
+        <LegalModal open={showTermosModal} onClose={() => setShowTermosModal(false)} tipo="termos" />
       </div>
       <BottomNav />
     </div>

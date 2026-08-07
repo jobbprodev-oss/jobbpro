@@ -37,6 +37,7 @@ export default function AdminTermosPage() {
     try {
       const token = await getAuthToken();
       const res = await fetch('/api/admin/configuracoes', {
+        cache: 'no-store',
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
       const data = await res.json();
@@ -56,6 +57,7 @@ export default function AdminTermosPage() {
       const token = await getAuthToken();
       const res = await fetch('/api/admin/configuracoes', {
         method: 'PUT',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
           termos_uso: termosData.termos_uso || '',
@@ -64,6 +66,7 @@ export default function AdminTermosPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      if (data.configuracoes) setTermosData(data.configuracoes);
       toast.success('Termos salvos com sucesso!');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar termos');

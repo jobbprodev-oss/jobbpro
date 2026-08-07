@@ -33,8 +33,17 @@ export async function POST(request: NextRequest) {
     const normalize = (s: string) =>
       s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 
-    const { data: existentes } = await getAdmin().from('funcoes').select('nome');
-    const nomesExistentes = new Set((existentes || []).map((f: any) => normalize(f.nome)));
+    // Buscar TODOS os nomes existentes paginando (evita limite padrão de 1000 do PostgREST)
+    const PAGE_SIZE = 1000;
+    let existentes: any[] = [];
+    let from = 0;
+    while (true) {
+      const { data } = await getAdmin().from('funcoes').select('nome').range(from, from + PAGE_SIZE - 1);
+      existentes = existentes.concat(data || []);
+      if (!data || data.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
+    }
+    const nomesExistentes = new Set(existentes.map((f: any) => normalize(f.nome)));
 
     let cadastradas = 0;
     let ignoradas = 0;

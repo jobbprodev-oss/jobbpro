@@ -23,11 +23,13 @@ export async function GET() {
     return NextResponse.json({
       termos_uso: data?.termos_uso || '',
       politica_privacidade: data?.politica_privacidade || '',
+    }, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
     });
   } catch (err: any) {
     return NextResponse.json(
       { error: err.message, termos_uso: '', politica_privacidade: '' },
-      { status: 500 }
+      { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
     );
   }
 }

@@ -8,6 +8,7 @@ import { supabase, uploadImage } from '@/lib/supabase';
 import { ESTADOS_BR } from '@/lib/types';
 import { useFuncoes } from '@/hooks/useFuncoes';
 import SearchableSelect from '@/components/searchable-select';
+import LegalModal from '@/components/legal-modal';
 import { maskCPF, maskPhone, maskCEP } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -32,6 +33,7 @@ export default function RegisterPrestadorPage() {
   const [erroFinalizacao, setErroFinalizacao] = useState<string | null>(null);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [checkingEmail, setCheckingEmail] = useState(false);
+  const [legalModal, setLegalModal] = useState<'termos' | 'privacidade' | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const finalizingRef = useRef(false);
 
@@ -665,8 +667,8 @@ export default function RegisterPrestadorPage() {
                 <input type="checkbox" id="termos" checked={form.termo_aceite} onChange={(e) => updateForm('termo_aceite', e.target.checked)} className="w-5 h-5 mt-0.5 rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
                 <label htmlFor="termos" className="text-sm text-gray-600 leading-relaxed">
                   Declaro que as informações fornecidas são verdadeiras e aceito o{' '}
-                  <a href="/termos" target="_blank" className="text-brand-600 font-medium underline">Termo de Uso</a> e a{' '}
-                  <a href="/privacidade" target="_blank" className="text-brand-600 font-medium underline">Política de Privacidade</a> da plataforma JOBBPRO.
+                  <button type="button" onClick={() => setLegalModal('termos')} className="text-brand-600 font-medium underline">Termo de Uso</button> e a{' '}
+                  <button type="button" onClick={() => setLegalModal('privacidade')} className="text-brand-600 font-medium underline">Política de Privacidade</button> da plataforma JOBBPRO.
                 </label>
               </div>
             </div>
@@ -774,6 +776,8 @@ export default function RegisterPrestadorPage() {
           ) : null}
         </div>
       </div>
+
+      <LegalModal open={!!legalModal} onClose={() => setLegalModal(null)} tipo={legalModal || 'termos'} />
     </div>
   );
 }

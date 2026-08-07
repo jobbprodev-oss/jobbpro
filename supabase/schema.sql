@@ -319,13 +319,12 @@ RETURNS TABLE (
 SECURITY DEFINER
 AS $func$
 DECLARE
-  v_funcoes TEXT[];
+  v_funcao1 TEXT;
+  v_funcao2 TEXT;
+  v_funcao3 TEXT;
 BEGIN
-  SELECT ARRAY_REMOVE(ARRAY[
-    LOWER(pp.funcao_principal), LOWER(pp.funcao_2), LOWER(pp.funcao_3),
-    LOWER(pp.funcao_4), LOWER(pp.funcao_5), LOWER(pp.funcao_6)
-  ], NULL)
-  INTO v_funcoes
+  SELECT pp.funcao_principal, pp.funcao_2, pp.funcao_3
+  INTO v_funcao1, v_funcao2, v_funcao3
   FROM prestador_perfil pp WHERE pp.id = prestador_uuid;
 
   RETURN QUERY
@@ -341,11 +340,14 @@ BEGIN
     v.valor_oferecido,
     v.vestimenta,
     (
-      CASE WHEN LOWER(v.funcao_principal) = ANY(v_funcoes) THEN 40 ELSE 0 END
+      CASE WHEN LOWER(v.funcao_principal) = LOWER(v_funcao1) THEN 40
+           WHEN LOWER(v.funcao_principal) = LOWER(COALESCE(v_funcao2, '')) THEN 30
+           WHEN LOWER(v.funcao_principal) = LOWER(COALESCE(v_funcao3, '')) THEN 20
+           ELSE 0 END
       +
-      CASE WHEN v.funcao_2 IS NOT NULL AND LOWER(v.funcao_2) = ANY(v_funcoes) THEN 15 ELSE 0 END
+      CASE WHEN LOWER(COALESCE(v.funcao_2, '')) IN (LOWER(v_funcao1), LOWER(COALESCE(v_funcao2, '')), LOWER(COALESCE(v_funcao3, ''))) THEN 15 ELSE 0 END
       +
-      CASE WHEN v.funcao_3 IS NOT NULL AND LOWER(v.funcao_3) = ANY(v_funcoes) THEN 10 ELSE 0 END
+      CASE WHEN LOWER(COALESCE(v.funcao_3, '')) IN (LOWER(v_funcao1), LOWER(COALESCE(v_funcao2, '')), LOWER(COALESCE(v_funcao3, ''))) THEN 10 ELSE 0 END
     )::DECIMAL as match_score,
     u.nome as contratante_nome,
     cp.media_avaliacao as contratante_avaliacao
@@ -356,9 +358,9 @@ BEGIN
     AND v.data >= CURRENT_DATE
     AND v.vagas_preenchidas < v.vagas_disponiveis
     AND (
-      LOWER(v.funcao_principal) = ANY(v_funcoes)
-      OR (v.funcao_2 IS NOT NULL AND LOWER(v.funcao_2) = ANY(v_funcoes))
-      OR (v.funcao_3 IS NOT NULL AND LOWER(v.funcao_3) = ANY(v_funcoes))
+      LOWER(v.funcao_principal) IN (LOWER(v_funcao1), LOWER(COALESCE(v_funcao2, '')), LOWER(COALESCE(v_funcao3, '')))
+      OR LOWER(COALESCE(v.funcao_2, '')) IN (LOWER(v_funcao1), LOWER(COALESCE(v_funcao2, '')), LOWER(COALESCE(v_funcao3, '')))
+      OR LOWER(COALESCE(v.funcao_3, '')) IN (LOWER(v_funcao1), LOWER(COALESCE(v_funcao2, '')), LOWER(COALESCE(v_funcao3, '')))
     )
     AND EXISTS (
       SELECT 1 FROM disponibilidades d

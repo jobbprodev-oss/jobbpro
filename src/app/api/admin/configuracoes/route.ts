@@ -34,7 +34,9 @@ export async function GET(request: NextRequest) {
 
     if (error && error.code !== 'PGRST116') throw error;
 
-    return NextResponse.json({ configuracoes: data || {} });
+    return NextResponse.json({ configuracoes: data || {} }, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -53,13 +55,18 @@ export async function PUT(request: NextRequest) {
 
     const { data, error } = await getAdmin()
       .from('configuracoes')
-      .upsert({ id: 'global', termos_uso: termos_uso ?? '', politica_privacidade: politica_privacidade ?? '' })
+      .upsert(
+        { id: 'global', termos_uso: termos_uso ?? '', politica_privacidade: politica_privacidade ?? '' },
+        { onConflict: 'id' }
+      )
       .select()
       .single();
 
     if (error) throw error;
 
-    return NextResponse.json({ configuracoes: data });
+    return NextResponse.json({ configuracoes: data }, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

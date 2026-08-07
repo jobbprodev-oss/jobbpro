@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Loader2, CheckCircle2, QrCode, Copy, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { ESTADOS_BR } from '@/lib/types';
+import LegalModal from '@/components/legal-modal';
 import { maskCPFouCNPJ, maskPhone, maskCEP } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -23,6 +24,7 @@ export default function RegisterContratantePage() {
   const [erroFinalizacao, setErroFinalizacao] = useState<string | null>(null);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [checkingEmail, setCheckingEmail] = useState(false);
+  const [legalModal, setLegalModal] = useState<'termos' | 'privacidade' | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const finalizingRef = useRef(false);
   const [form, setForm] = useState({
@@ -478,8 +480,8 @@ export default function RegisterContratantePage() {
                     <input type="checkbox" id="termos" checked={form.termo_aceite} onChange={(e) => updateForm('termo_aceite', e.target.checked)} className="w-5 h-5 mt-0.5 rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
                     <label htmlFor="termos" className="text-sm text-gray-600 leading-relaxed">
                       Declaro que as informações são verdadeiras e aceito o{' '}
-                      <a href="/termos" target="_blank" className="text-brand-600 font-medium underline">Termo de Uso</a> e a{' '}
-                      <a href="/privacidade" target="_blank" className="text-brand-600 font-medium underline">Política de Privacidade</a>.
+                      <button type="button" onClick={() => setLegalModal('termos')} className="text-brand-600 font-medium underline">Termo de Uso</button> e a{' '}
+                      <button type="button" onClick={() => setLegalModal('privacidade')} className="text-brand-600 font-medium underline">Política de Privacidade</button>.
                     </label>
                   </div>
                 </div>
@@ -587,6 +589,8 @@ export default function RegisterContratantePage() {
           ) : null}
         </div>
       </div>
+
+      <LegalModal open={!!legalModal} onClose={() => setLegalModal(null)} tipo={legalModal || 'termos'} />
     </div>
   );
 }

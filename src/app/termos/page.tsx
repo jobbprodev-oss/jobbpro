@@ -14,7 +14,7 @@ export default function TermosPage() {
 
   const fetchTermos = async () => {
     try {
-      const res = await fetch('/api/configuracoes');
+      const res = await fetch('/api/configuracoes', { cache: 'no-store' });
       const data = await res.json();
       setTermos(data?.termos_uso || '');
     } catch (err) {

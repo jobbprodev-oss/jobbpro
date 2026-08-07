@@ -14,7 +14,7 @@ export default function PrivacidadePage() {
 
   const fetchPolitica = async () => {
     try {
-      const res = await fetch('/api/configuracoes');
+      const res = await fetch('/api/configuracoes', { cache: 'no-store' });
       const data = await res.json();
       setPolitica(data?.politica_privacidade || '');
     } catch (err) {

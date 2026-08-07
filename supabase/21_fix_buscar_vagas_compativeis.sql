@@ -1,5 +1,8 @@
 -- =============================================
--- PARTE 5: Função buscar_vagas_compativeis
+-- PARTE 21: Corrigir buscar_vagas_compativeis para
+-- considerar TODAS as funções do prestador
+-- (funcao_principal, funcao_2..funcao_6), incluindo
+-- as funções extras compradas/aprovadas.
 -- =============================================
 
 DROP FUNCTION IF EXISTS buscar_vagas_compativeis(UUID);

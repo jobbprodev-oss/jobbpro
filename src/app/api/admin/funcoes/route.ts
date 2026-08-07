@@ -24,13 +24,23 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const all = searchParams.get('all') === '1';
 
-    let query = getAdmin().from('funcoes').select('*');
-    if (!all) query = query.eq('ativa', true);
-    query = query.order('nome');
+    // Buscar TODAS as linhas paginando (evita limite padrão de 1000 do PostgREST)
+    const PAGE_SIZE = 1000;
+    let allRows: any[] = [];
+    let from = 0;
+    while (true) {
+      let query = getAdmin().from('funcoes').select('*');
+      if (!all) query = query.eq('ativa', true);
+      query = query.order('nome').range(from, from + PAGE_SIZE - 1);
 
-    const { data, error } = await query;
-    if (error) throw error;
-    return NextResponse.json({ funcoes: data });
+      const { data, error } = await query;
+      if (error) throw error;
+      allRows = allRows.concat(data || []);
+      if (!data || data.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
+    }
+
+    return NextResponse.json({ funcoes: allRows });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
