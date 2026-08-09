@@ -130,6 +130,13 @@ export default function AdicionarFuncaoModal({ open, onClose }: AdicionarFuncaoM
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
+      if (data.gratuito) {
+        toast.success('Função liberada gratuitamente!');
+        setStep('confirmado');
+        await recarregarPerfil();
+        return;
+      }
+
       setPixData({
         pagamento_id: data.pagamento_id,
         qr_code: data.qr_code,

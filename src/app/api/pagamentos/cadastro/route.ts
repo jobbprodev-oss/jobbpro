@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { ASAAS_API_URL, getAsaasKey, mapAsaasStatus, consultarEProcessarPagamento } from '@/lib/pagamentos-server';
+import { isSistemaGratuitoAtivo } from '@/lib/gratuito';
 
 let _client: SupabaseClient | null = null;
 function getAdmin(): SupabaseClient {
@@ -40,6 +41,31 @@ export async function POST(request: NextRequest) {
     }
 
     const valor = plano.valor;
+
+    // Período gratuito ativo: libera cadastro sem cobrança
+    const gratuito = await isSistemaGratuitoAtivo(getAdmin());
+    if (gratuito) {
+      if (user_id) {
+        const expira = new Date();
+        expira.setDate(expira.getDate() + (plano.duracao_dias || 365));
+        await getAdmin()
+          .from('users')
+          .update({
+            plano_id: plano.id,
+            plano_ativo: true,
+            plano_expira_em: expira.toISOString(),
+            tipo_liberacao: 'gratuito_temporario',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user_id);
+      }
+      return NextResponse.json({
+        gratuito: true,
+        plano_id: plano.id,
+        plano_nome: plano.nome,
+        duracao_dias: plano.duracao_dias,
+      });
+    }
 
     // Criar ou buscar customer no Asaas
     const cpfLimpo = cpf.replace(/\D/g, '');

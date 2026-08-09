@@ -400,6 +400,15 @@ export default function RegisterPrestadorPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+
+      if (data.gratuito) {
+        setPlanoConfirmado({ plano_id: data.plano_id, duracao_dias: data.duracao_dias, userId });
+        setPagamentoConfirmado(true);
+        toast.success('Cadastro realizado com sucesso! Bem-vindo ao JOBBPRO!');
+        router.push('/dashboard/prestador');
+        return;
+      }
+
       setPixData(data);
 
       // PASSO 4: Polling — apenas ativa plano

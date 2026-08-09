@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { ASAAS_API_URL, getAsaasKey } from '@/lib/pagamentos-server';
+import { isSistemaGratuitoAtivo } from '@/lib/gratuito';
 
 let _client: SupabaseClient | null = null;
 function getAdmin(): SupabaseClient {
@@ -87,6 +88,29 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Você já possui esta função no seu perfil' }, { status: 409 });
           }
         }
+      }
+
+      // Verificar período gratuito para função extra
+      const gratuito = await isSistemaGratuitoAtivo(getAdmin());
+      if (gratuito) {
+        const { data: perfil } = await getAdmin()
+          .from('prestador_perfil')
+          .select('id, funcao_principal, funcao_2, funcao_3, funcao_4, funcao_5, funcao_6, funcoes_extras, funcoes_tipo_liberacao')
+          .eq('user_id', authUser.id)
+          .single();
+        if (perfil) {
+          const extras: string[] = Array.isArray(perfil.funcoes_extras) ? perfil.funcoes_extras : [];
+          const slots = ['funcao_2', 'funcao_3', 'funcao_4', 'funcao_5', 'funcao_6'];
+          const slotVazio = slots.find((s) => !(perfil as Record<string, any>)[s]);
+          const tipoMap = (perfil.funcoes_tipo_liberacao as Record<string, string> | null) || {};
+          tipoMap[nome_funcao] = 'gratuito_temporario';
+          if (slotVazio) {
+            await getAdmin().from('prestador_perfil').update({ [slotVazio]: nome_funcao, funcoes_tipo_liberacao: tipoMap, updated_at: new Date().toISOString() }).eq('id', perfil.id);
+          } else {
+            await getAdmin().from('prestador_perfil').update({ funcoes_extras: [...extras, nome_funcao], funcoes_tipo_liberacao: tipoMap, updated_at: new Date().toISOString() }).eq('id', perfil.id);
+          }
+        }
+        return NextResponse.json({ gratuito: true, nome_funcao });
       }
 
       // Buscar plano de compra de função cadastrado no admin

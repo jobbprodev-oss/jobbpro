@@ -24,7 +24,7 @@ export async function processarPagamentoConfirmado(admin: SupabaseClient, pagame
     console.log('[PAGAMENTO_PROCESSAR] Função liberada:', pagamento.id, nomeFuncao);
     const { data: perfil } = await admin
       .from('prestador_perfil')
-      .select('id, funcao_principal, funcao_2, funcao_3, funcao_4, funcao_5, funcao_6, funcoes_extras')
+      .select('id, funcao_principal, funcao_2, funcao_3, funcao_4, funcao_5, funcao_6, funcoes_extras, funcoes_tipo_liberacao')
       .eq('user_id', pagamento.user_id)
       .single();
 
@@ -36,11 +36,13 @@ export async function processarPagamentoConfirmado(admin: SupabaseClient, pagame
       if (!jaExiste) {
         const slots = ['funcao_2', 'funcao_3', 'funcao_4', 'funcao_5', 'funcao_6'];
         const slotVazio = slots.find((s) => !(perfil as Record<string, any>)[s]);
+        const tipoMap = (perfil.funcoes_tipo_liberacao as Record<string, string> | null) || {};
+        tipoMap[nomeFuncao] = 'pago';
         if (slotVazio) {
-          await admin.from('prestador_perfil').update({ [slotVazio]: nomeFuncao, updated_at: new Date().toISOString() }).eq('id', perfil.id);
+          await admin.from('prestador_perfil').update({ [slotVazio]: nomeFuncao, funcoes_tipo_liberacao: tipoMap, updated_at: new Date().toISOString() }).eq('id', perfil.id);
         } else {
           // Todos os slots fixos preenchidos: função vai para o array ilimitado de funções extras
-          await admin.from('prestador_perfil').update({ funcoes_extras: [...extras, nomeFuncao], updated_at: new Date().toISOString() }).eq('id', perfil.id);
+          await admin.from('prestador_perfil').update({ funcoes_extras: [...extras, nomeFuncao], funcoes_tipo_liberacao: tipoMap, updated_at: new Date().toISOString() }).eq('id', perfil.id);
         }
       }
     }
@@ -60,7 +62,7 @@ export async function processarPagamentoConfirmado(admin: SupabaseClient, pagame
     console.log('[PAGAMENTO_PROCESSAR] Cadastro liberado:', pagamento.user_id);
     await admin
       .from('users')
-      .update({ plano_id: pagamento.metadata.plano_id, plano_ativo: true, plano_expira_em: expira.toISOString() })
+      .update({ plano_id: pagamento.metadata.plano_id, plano_ativo: true, plano_expira_em: expira.toISOString(), tipo_liberacao: 'pago' })
       .eq('id', pagamento.user_id);
   }
 

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import AuthProvider from '@/components/auth-provider';
-import { Loader2, Users, Briefcase, ClipboardList, Star, Shield, LogOut, TrendingUp, AlertTriangle, CreditCard, Tag, Bell, FileText, UserPlus, Users2, MessageSquare } from 'lucide-react';
+import { Loader2, Users, Briefcase, ClipboardList, Star, Shield, LogOut, TrendingUp, AlertTriangle, CreditCard, Tag, Bell, FileText, UserPlus, Users2, MessageSquare, Gift } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Stats {
@@ -265,6 +265,11 @@ export default function AdminDashboardPage() {
                 <MessageSquare className="w-8 h-8 text-green-400 mb-3 group-hover:scale-110 transition-transform" />
                 <h4 className="font-semibold text-white">Logs WhatsApp</h4>
                 <p className="text-sm text-gray-400 mt-1">Monitorar envios via NotificaMais</p>
+              </Link>
+              <Link href="/admin/gratuito" className="bg-gray-800 border border-gray-700 rounded-xl p-5 hover:border-brand-500 transition-colors group">
+                <Gift className="w-8 h-8 text-rose-400 mb-3 group-hover:scale-110 transition-transform" />
+                <h4 className="font-semibold text-white">Período Gratuito</h4>
+                <p className="text-sm text-gray-400 mt-1">Ativar/desativar versão gratuita do sistema</p>
               </Link>
             </div>
           </div>

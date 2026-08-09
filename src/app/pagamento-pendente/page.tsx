@@ -192,6 +192,11 @@ export default function PagamentoPendentePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
+      if (data.gratuito) {
+        await finalizePayment(data.plano_id, data.duracao_dias);
+        return;
+      }
+
       setPixData(data);
       setPixStatus('pendente');
       startPolling(data.asaas_payment_id, data.plano_id, data.duracao_dias);

@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await getAdmin()
       .from('configuracoes')
-      .select('termos_uso, politica_privacidade')
+      .select('termos_uso, politica_privacidade, sistema_gratuito_ativo, gratuito_inicio, gratuito_fim')
       .eq('id', 'global')
       .single();
 
@@ -51,14 +51,18 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { termos_uso, politica_privacidade } = body;
+    const { termos_uso, politica_privacidade, sistema_gratuito_ativo, gratuito_inicio, gratuito_fim } = body;
+
+    const payload: any = { id: 'global' };
+    if (termos_uso !== undefined) payload.termos_uso = termos_uso ?? '';
+    if (politica_privacidade !== undefined) payload.politica_privacidade = politica_privacidade ?? '';
+    if (sistema_gratuito_ativo !== undefined) payload.sistema_gratuito_ativo = sistema_gratuito_ativo;
+    if (gratuito_inicio !== undefined) payload.gratuito_inicio = gratuito_inicio || null;
+    if (gratuito_fim !== undefined) payload.gratuito_fim = gratuito_fim || null;
 
     const { data, error } = await getAdmin()
       .from('configuracoes')
-      .upsert(
-        { id: 'global', termos_uso: termos_uso ?? '', politica_privacidade: politica_privacidade ?? '' },
-        { onConflict: 'id' }
-      )
+      .upsert(payload, { onConflict: 'id' })
       .select()
       .single();
 

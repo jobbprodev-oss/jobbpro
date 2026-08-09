@@ -3,6 +3,8 @@ export type MatchStatus = 'pendente' | 'aceito' | 'confirmado' | 'recusado' | 'c
 export type VestimentaTipo = 'social' | 'casual' | 'uniforme' | 'esporte_fino' | 'outro';
 export type PlanoCategoria = 'servico' | 'cadastro' | 'funcao';
 
+export type TipoLiberacao = 'pago' | 'gratuito_temporario' | 'cortesia_admin';
+
 export interface User {
   id: string;
   tipo: UserType;
@@ -26,6 +28,7 @@ export interface User {
   plano_id?: string;
   plano_ativo?: boolean;
   plano_expira_em?: string;
+  tipo_liberacao?: TipoLiberacao;
   created_at: string;
   updated_at: string;
 }
@@ -40,6 +43,7 @@ export interface PrestadorPerfil {
   funcao_5?: string;
   funcao_6?: string;
   funcoes_extras?: string[];
+  funcoes_tipo_liberacao?: Record<string, TipoLiberacao>;
   valor_pretendido?: number;
   vestimenta: VestimentaTipo;
   aceita_negociacao: boolean;
