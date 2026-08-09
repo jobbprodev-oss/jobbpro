@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import Header from '@/components/header';
@@ -122,6 +122,12 @@ export default function PerfilPage() {
                     <span className="font-medium">{prestadorPerfil.funcao_6}</span>
                   </>
                 )}
+                {(prestadorPerfil.funcoes_extras || []).map((f, idx) => (
+                  <Fragment key={`extra-${idx}`}>
+                    <span className="text-gray-500">Função {7 + idx}:</span>
+                    <span className="font-medium">{f}</span>
+                  </Fragment>
+                ))}
                 <span className="text-gray-500">Valor:</span>
                 <span className="font-medium text-emerald-600">
                   {prestadorPerfil.valor_pretendido ? formatCurrency(prestadorPerfil.valor_pretendido) : '—'}

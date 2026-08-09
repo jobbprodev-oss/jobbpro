@@ -71,6 +71,24 @@ export async function POST(request: NextRequest) {
       valor = plano.valor;
       paymentDescricao = descricao || plano.nome;
     } else {
+      // Impedir nova cobrança para função que o prestador já possui (slots fixos ou extras)
+      if (nome_funcao) {
+        const normalize = (s?: string | null) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+        const { data: perfilAtual } = await getAdmin()
+          .from('prestador_perfil')
+          .select('funcao_principal, funcao_2, funcao_3, funcao_4, funcao_5, funcao_6, funcoes_extras')
+          .eq('user_id', authUser.id)
+          .maybeSingle();
+        if (perfilAtual) {
+          const extras: string[] = Array.isArray(perfilAtual.funcoes_extras) ? perfilAtual.funcoes_extras : [];
+          const jaPossui = [perfilAtual.funcao_principal, perfilAtual.funcao_2, perfilAtual.funcao_3, perfilAtual.funcao_4, perfilAtual.funcao_5, perfilAtual.funcao_6, ...extras]
+            .some((f) => normalize(f) === normalize(nome_funcao));
+          if (jaPossui) {
+            return NextResponse.json({ error: 'Você já possui esta função no seu perfil' }, { status: 409 });
+          }
+        }
+      }
+
       // Buscar plano de compra de função cadastrado no admin
       const { data: planoFuncao } = await getAdmin()
         .from('planos')

@@ -21,6 +21,7 @@ export default function AdminEditarUsuarioPage() {
   const [planos, setPlanos] = useState<Plano[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [funcoesPrestador, setFuncoesPrestador] = useState<string[]>([]);
   const [form, setForm] = useState({
     nome: '',
     email: '',
@@ -65,6 +66,26 @@ export default function AdminEditarUsuarioPage() {
         plano_id: data.plano_id || '',
         ativo: data.ativo,
       });
+
+      if (data.tipo === 'prestador') {
+        const { data: perfil } = await supabase
+          .from('prestador_perfil')
+          .select('funcao_principal, funcao_2, funcao_3, funcao_4, funcao_5, funcao_6, funcoes_extras')
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (perfil) {
+          const extras = Array.isArray(perfil.funcoes_extras) ? perfil.funcoes_extras : [];
+          setFuncoesPrestador([
+            perfil.funcao_principal,
+            perfil.funcao_2,
+            perfil.funcao_3,
+            perfil.funcao_4,
+            perfil.funcao_5,
+            perfil.funcao_6,
+            ...extras,
+          ].filter(Boolean) as string[]);
+        }
+      }
     } catch (err: any) {
       toast.error('Erro ao carregar usuário');
       router.push('/admin/usuarios');
@@ -203,6 +224,18 @@ export default function AdminEditarUsuarioPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Funções do Prestador */}
+              {form.tipo === 'prestador' && funcoesPrestador.length > 0 && (
+                <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
+                  <h2 className="font-semibold mb-4">Funções Vinculadas</h2>
+                  <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
+                    {funcoesPrestador.map((f, idx) => (
+                      <li key={idx}>{f}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Plano */}
               {form.tipo !== 'admin' && (

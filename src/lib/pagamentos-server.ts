@@ -24,19 +24,23 @@ export async function processarPagamentoConfirmado(admin: SupabaseClient, pagame
     console.log('[PAGAMENTO_PROCESSAR] Função liberada:', pagamento.id, nomeFuncao);
     const { data: perfil } = await admin
       .from('prestador_perfil')
-      .select('id, funcao_principal, funcao_2, funcao_3, funcao_4, funcao_5, funcao_6')
+      .select('id, funcao_principal, funcao_2, funcao_3, funcao_4, funcao_5, funcao_6, funcoes_extras')
       .eq('user_id', pagamento.user_id)
       .single();
 
     if (perfil) {
       const normalize = (s?: string | null) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
-      const jaExiste = [perfil.funcao_principal, perfil.funcao_2, perfil.funcao_3, perfil.funcao_4, perfil.funcao_5, perfil.funcao_6]
+      const extras: string[] = Array.isArray(perfil.funcoes_extras) ? perfil.funcoes_extras : [];
+      const jaExiste = [perfil.funcao_principal, perfil.funcao_2, perfil.funcao_3, perfil.funcao_4, perfil.funcao_5, perfil.funcao_6, ...extras]
         .some((f) => normalize(f) === normalize(nomeFuncao));
       if (!jaExiste) {
         const slots = ['funcao_2', 'funcao_3', 'funcao_4', 'funcao_5', 'funcao_6'];
         const slotVazio = slots.find((s) => !(perfil as Record<string, any>)[s]);
         if (slotVazio) {
           await admin.from('prestador_perfil').update({ [slotVazio]: nomeFuncao, updated_at: new Date().toISOString() }).eq('id', perfil.id);
+        } else {
+          // Todos os slots fixos preenchidos: função vai para o array ilimitado de funções extras
+          await admin.from('prestador_perfil').update({ funcoes_extras: [...extras, nomeFuncao], updated_at: new Date().toISOString() }).eq('id', perfil.id);
         }
       }
     }

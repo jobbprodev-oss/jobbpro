@@ -39,6 +39,7 @@ export interface PrestadorPerfil {
   funcao_4?: string;
   funcao_5?: string;
   funcao_6?: string;
+  funcoes_extras?: string[];
   valor_pretendido?: number;
   vestimenta: VestimentaTipo;
   aceita_negociacao: boolean;

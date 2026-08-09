@@ -229,6 +229,7 @@ export default function VagaDetailPage() {
             prestadorPerfil.funcao_4,
             prestadorPerfil.funcao_5,
             prestadorPerfil.funcao_6,
+            ...(prestadorPerfil.funcoes_extras || []),
           ].filter(Boolean).map(normalize);
           const funcaoCompativel = funcoesPrestador.includes(normalize(vaga.funcao_principal));
           return funcaoCompativel ? (
@@ -278,7 +279,7 @@ export default function VagaDetailPage() {
                 if (normScore(prestadorPerfil!.funcao_principal) === vagaFuncNorm) {
                   score += 30;
                 } else if (
-                  [prestadorPerfil!.funcao_2, prestadorPerfil!.funcao_3, prestadorPerfil!.funcao_4, prestadorPerfil!.funcao_5, prestadorPerfil!.funcao_6]
+                  [prestadorPerfil!.funcao_2, prestadorPerfil!.funcao_3, prestadorPerfil!.funcao_4, prestadorPerfil!.funcao_5, prestadorPerfil!.funcao_6, ...(prestadorPerfil!.funcoes_extras || [])]
                     .some((f) => normScore(f) === vagaFuncNorm)
                 ) {
                   score += 20;

@@ -81,11 +81,11 @@ export default function AdicionarFuncaoModal({ open, onClose }: AdicionarFuncaoM
     prestadorPerfil.funcao_4,
     prestadorPerfil.funcao_5,
     prestadorPerfil.funcao_6,
+    ...(prestadorPerfil.funcoes_extras || []),
   ].filter(Boolean);
 
   const slot = !prestadorPerfil.funcao_2 ? 'funcao_2' : !prestadorPerfil.funcao_3 ? 'funcao_3' : null;
   const todasPreenchidas = !slot;
-  const temSlotExtra = !prestadorPerfil.funcao_4 || !prestadorPerfil.funcao_5 || !prestadorPerfil.funcao_6;
 
   const opcoesDisponiveis = funcoes.filter((f) => !funcoesUsadas.includes(f));
 
