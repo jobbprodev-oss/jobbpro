@@ -1,34 +1,48 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 
-export async function isSistemaGratuitoAtivo(admin: SupabaseClient): Promise<boolean> {
-  const { data } = await admin
-    .from('configuracoes')
-    .select('sistema_gratuito_ativo, gratuito_inicio, gratuito_fim')
-    .eq('id', 'global')
-    .maybeSingle();
-
-  if (!data || !data.sistema_gratuito_ativo) return false;
-
-  const agora = new Date();
-  const inicio = data.gratuito_inicio ? new Date(data.gratuito_inicio) : null;
-  const fim = data.gratuito_fim ? new Date(data.gratuito_fim) : null;
-
-  if (inicio && agora < inicio) return false;
-  if (fim && agora > fim) return false;
-
-  return true;
+export interface GratuidadeConfig {
+  cadastro_gratuito_ativo: boolean;
+  funcao_extra_gratuita_ativo: boolean;
+  publicacao_vaga_gratuita_ativo: boolean;
 }
 
-export async function getConfigGratuito(admin: SupabaseClient) {
+export async function getConfigGratuito(admin: SupabaseClient): Promise<GratuidadeConfig> {
   const { data } = await admin
     .from('configuracoes')
-    .select('sistema_gratuito_ativo, gratuito_inicio, gratuito_fim')
+    .select('cadastro_gratuito_ativo, funcao_extra_gratuita_ativo, publicacao_vaga_gratuita_ativo')
     .eq('id', 'global')
     .maybeSingle();
 
   return {
-    sistema_gratuito_ativo: data?.sistema_gratuito_ativo || false,
-    gratuito_inicio: data?.gratuito_inicio || '',
-    gratuito_fim: data?.gratuito_fim || '',
+    cadastro_gratuito_ativo: !!data?.cadastro_gratuito_ativo,
+    funcao_extra_gratuita_ativo: !!data?.funcao_extra_gratuita_ativo,
+    publicacao_vaga_gratuita_ativo: !!data?.publicacao_vaga_gratuita_ativo,
   };
+}
+
+export async function isCadastroGratuitoAtivo(admin: SupabaseClient): Promise<boolean> {
+  const { data } = await admin
+    .from('configuracoes')
+    .select('cadastro_gratuito_ativo')
+    .eq('id', 'global')
+    .maybeSingle();
+  return !!data?.cadastro_gratuito_ativo;
+}
+
+export async function isFuncaoExtraGratuitaAtiva(admin: SupabaseClient): Promise<boolean> {
+  const { data } = await admin
+    .from('configuracoes')
+    .select('funcao_extra_gratuita_ativo')
+    .eq('id', 'global')
+    .maybeSingle();
+  return !!data?.funcao_extra_gratuita_ativo;
+}
+
+export async function isPublicacaoVagaGratuitaAtiva(admin: SupabaseClient): Promise<boolean> {
+  const { data } = await admin
+    .from('configuracoes')
+    .select('publicacao_vaga_gratuita_ativo')
+    .eq('id', 'global')
+    .maybeSingle();
+  return !!data?.publicacao_vaga_gratuita_ativo;
 }

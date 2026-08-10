@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await getAdmin()
       .from('configuracoes')
-      .select('termos_uso, politica_privacidade, sistema_gratuito_ativo, gratuito_inicio, gratuito_fim')
+      .select('termos_uso, politica_privacidade, cadastro_gratuito_ativo, funcao_extra_gratuita_ativo, publicacao_vaga_gratuita_ativo')
       .eq('id', 'global')
       .single();
 
@@ -51,14 +51,14 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { termos_uso, politica_privacidade, sistema_gratuito_ativo, gratuito_inicio, gratuito_fim } = body;
+    const { termos_uso, politica_privacidade, cadastro_gratuito_ativo, funcao_extra_gratuita_ativo, publicacao_vaga_gratuita_ativo } = body;
 
     const payload: any = { id: 'global' };
     if (termos_uso !== undefined) payload.termos_uso = termos_uso ?? '';
     if (politica_privacidade !== undefined) payload.politica_privacidade = politica_privacidade ?? '';
-    if (sistema_gratuito_ativo !== undefined) payload.sistema_gratuito_ativo = sistema_gratuito_ativo;
-    if (gratuito_inicio !== undefined) payload.gratuito_inicio = gratuito_inicio || null;
-    if (gratuito_fim !== undefined) payload.gratuito_fim = gratuito_fim || null;
+    if (cadastro_gratuito_ativo !== undefined) payload.cadastro_gratuito_ativo = cadastro_gratuito_ativo;
+    if (funcao_extra_gratuita_ativo !== undefined) payload.funcao_extra_gratuita_ativo = funcao_extra_gratuita_ativo;
+    if (publicacao_vaga_gratuita_ativo !== undefined) payload.publicacao_vaga_gratuita_ativo = publicacao_vaga_gratuita_ativo;
 
     const { data, error } = await getAdmin()
       .from('configuracoes')

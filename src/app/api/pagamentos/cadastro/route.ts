@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { ASAAS_API_URL, getAsaasKey, mapAsaasStatus, consultarEProcessarPagamento } from '@/lib/pagamentos-server';
-import { isSistemaGratuitoAtivo } from '@/lib/gratuito';
+import { isCadastroGratuitoAtivo } from '@/lib/gratuito';
 
 let _client: SupabaseClient | null = null;
 function getAdmin(): SupabaseClient {
@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
 
     const valor = plano.valor;
 
-    // Período gratuito ativo: libera cadastro sem cobrança
-    const gratuito = await isSistemaGratuitoAtivo(getAdmin());
+    // Cadastro gratuito ativo: libera cadastro sem cobrança
+    const gratuito = await isCadastroGratuitoAtivo(getAdmin());
     if (gratuito) {
       if (user_id) {
         const expira = new Date();

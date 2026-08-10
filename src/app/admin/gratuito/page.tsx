@@ -6,21 +6,23 @@ import { useRouter } from 'next/navigation';
 import { getAuthToken } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import AuthProvider from '@/components/auth-provider';
-import { Loader2, ArrowLeft, Gift, Save, RotateCcw } from 'lucide-react';
+import { Loader2, ArrowLeft, Gift, UserPlus, Tag, Briefcase } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface GratuitoData {
-  sistema_gratuito_ativo?: boolean;
-  gratuito_inicio?: string;
-  gratuito_fim?: string;
+  cadastro_gratuito_ativo?: boolean;
+  funcao_extra_gratuita_ativo?: boolean;
+  publicacao_vaga_gratuita_ativo?: boolean;
 }
+
+type ChaveGratuito = keyof GratuitoData;
 
 export default function AdminGratuitoPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAppStore();
   const [data, setData] = useState<GratuitoData>({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [savingKey, setSavingKey] = useState<ChaveGratuito | null>(null);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -47,33 +49,27 @@ export default function AdminGratuitoPage() {
     }
   };
 
-  const salvar = async (ativar: boolean) => {
-    setSaving(true);
+  const toggle = async (chave: ChaveGratuito, mensagens: { on: string; off: string }) => {
+    setSavingKey(chave);
+    const novoValor = !data[chave];
     try {
       const token = await getAuthToken();
-      const payload: GratuitoData = {
-        sistema_gratuito_ativo: ativar,
-        gratuito_inicio: ativar ? (data.gratuito_inicio || new Date().toISOString().slice(0, 16)) : undefined,
-        gratuito_fim: ativar ? data.gratuito_fim : undefined,
-      };
       const res = await fetch('/api/admin/configuracoes', {
         method: 'PUT',
         cache: 'no-store',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ [chave]: novoValor }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       setData(json.configuracoes || {});
-      toast.success(ativar ? 'Período gratuito ativado!' : 'Sistema voltou para versão paga!');
+      toast.success(novoValor ? mensagens.on : mensagens.off);
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar');
     } finally {
-      setSaving(false);
+      setSavingKey(null);
     }
   };
-
-  const formatInput = (v?: string) => v ? v.slice(0, 16) : '';
 
   return (
     <AuthProvider>
@@ -95,78 +91,101 @@ export default function AdminGratuitoPage() {
             </div>
           </header>
 
-          <div className="max-w-3xl mx-auto px-6 py-6">
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 space-y-6">
-              <div>
-                <h2 className="font-semibold mb-1">Período gratuito do sistema</h2>
-                <p className="text-sm text-gray-400">Quando ativo, cadastros e novas funções são liberados sem cobrança no Asaas.</p>
-              </div>
+          <div className="max-w-3xl mx-auto px-6 py-6 space-y-4">
+            <ControleGratuito
+              icon={UserPlus}
+              titulo="Cadastro gratuito"
+              descricao="Quando ativo, novos cadastros não geram cobrança no Asaas."
+              ativo={!!data.cadastro_gratuito_ativo}
+              saving={savingKey === 'cadastro_gratuito_ativo'}
+              onToggle={() => toggle('cadastro_gratuito_ativo', {
+                on: 'Cadastro gratuito ativado!',
+                off: 'Cadastro voltou a exigir pagamento.',
+              })}
+            />
 
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={!!data.sistema_gratuito_ativo}
-                  onChange={(e) => setData({ ...data, sistema_gratuito_ativo: e.target.checked })}
-                  className="w-4 h-4 rounded border-gray-600 text-brand-600 focus:ring-brand-500"
-                />
-                <span className="text-sm font-medium text-gray-300">Ativar versão gratuita</span>
-              </label>
+            <ControleGratuito
+              icon={Tag}
+              titulo="Adicionar função gratuita"
+              descricao="Quando ativo, o prestador pode adicionar novas funções (quantidade ilimitada) sem pagamento."
+              ativo={!!data.funcao_extra_gratuita_ativo}
+              saving={savingKey === 'funcao_extra_gratuita_ativo'}
+              onToggle={() => toggle('funcao_extra_gratuita_ativo', {
+                on: 'Adição de função gratuita ativada!',
+                off: 'Adição de função voltou a exigir pagamento.',
+              })}
+            />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-300 mb-1 block">Data de início</label>
-                  <input
-                    type="datetime-local"
-                    value={formatInput(data.gratuito_inicio)}
-                    onChange={(e) => setData({ ...data, gratuito_inicio: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-300 mb-1 block">Data de término</label>
-                  <input
-                    type="datetime-local"
-                    value={formatInput(data.gratuito_fim)}
-                    onChange={(e) => setData({ ...data, gratuito_fim: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500"
-                  />
-                </div>
-              </div>
+            <ControleGratuito
+              icon={Briefcase}
+              titulo="Publicação de oportunidade gratuita"
+              descricao="Quando ativo, a oportunidade pode ser publicada sem a cobrança atual no Asaas."
+              ativo={!!data.publicacao_vaga_gratuita_ativo}
+              saving={savingKey === 'publicacao_vaga_gratuita_ativo'}
+              onToggle={() => toggle('publicacao_vaga_gratuita_ativo', {
+                on: 'Publicação de oportunidade gratuita ativada!',
+                off: 'Publicação de oportunidade voltou a exigir pagamento.',
+              })}
+            />
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => salvar(true)}
-                  disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 rounded-xl text-sm font-semibold transition-colors"
-                >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Ativar período gratuito
-                </button>
-                <button
-                  type="button"
-                  onClick={() => salvar(false)}
-                  disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 rounded-xl text-sm font-semibold transition-colors"
-                >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
-                  Voltar para versão paga
-                </button>
-              </div>
-
-              <div className="text-xs text-gray-500 bg-gray-900/50 p-4 rounded-lg">
-                <p>Regras:</p>
-                <ul className="list-disc list-inside mt-1 space-y-1">
-                  <li>Ativo: novos cadastros e funções são liberados sem cobrança.</li>
-                  <li>Nenhum pagamento já aprovado será alterado ou apagado.</li>
-                  <li>Usuários pagos mantêm acesso normalmente.</li>
-                  <li>Ao voltar para paga, apenas novos cadastros/funções voltam a exigir pagamento.</li>
-                </ul>
-              </div>
+            <div className="text-xs text-gray-500 bg-gray-900/50 p-4 rounded-lg border border-gray-800">
+              <p>Regras:</p>
+              <ul className="list-disc list-inside mt-1 space-y-1">
+                <li>Cada controle funciona de forma independente dos demais.</li>
+                <li>Nenhum pagamento já aprovado será alterado ou apagado.</li>
+                <li>Usuários pagos mantêm acesso normalmente.</li>
+                <li>Ao desativar, a funcionalidade correspondente volta ao fluxo pago atual.</li>
+              </ul>
             </div>
           </div>
         </div>
       )}
     </AuthProvider>
+  );
+}
+
+function ControleGratuito({
+  icon: Icon,
+  titulo,
+  descricao,
+  ativo,
+  saving,
+  onToggle,
+}: {
+  icon: any;
+  titulo: string;
+  descricao: string;
+  ativo: boolean;
+  saving: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${ativo ? 'bg-emerald-500/10 text-emerald-400' : 'bg-gray-700 text-gray-400'}`}>
+            <Icon className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-semibold">{titulo}</h3>
+            <p className="text-sm text-gray-400 mt-0.5">{descricao}</p>
+            <span className={`inline-block mt-2 text-xs font-medium px-2 py-0.5 rounded-full ${ativo ? 'bg-emerald-500/10 text-emerald-400' : 'bg-gray-700 text-gray-400'}`}>
+              {ativo ? 'Ativo' : 'Inativo'}
+            </span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onToggle}
+          disabled={saving}
+          className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 ${
+            ativo ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-brand-600 hover:bg-brand-700 text-white'
+          }`}
+        >
+          {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+          {ativo ? 'Desativar' : 'Ativar'}
+        </button>
+      </div>
+    </div>
   );
 }

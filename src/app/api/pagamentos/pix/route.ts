@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { ASAAS_API_URL, getAsaasKey } from '@/lib/pagamentos-server';
-import { isSistemaGratuitoAtivo } from '@/lib/gratuito';
+import { isFuncaoExtraGratuitaAtiva, isPublicacaoVagaGratuitaAtiva } from '@/lib/gratuito';
 
 let _client: SupabaseClient | null = null;
 function getAdmin(): SupabaseClient {
@@ -68,7 +68,19 @@ export async function POST(request: NextRequest) {
       if (planoError || !plano) {
         return NextResponse.json({ error: 'Plano não encontrado' }, { status: 404 });
       }
-      
+
+      // Verificar se "Publicação de oportunidade gratuita" está ativo
+      if (tipo === 'publicacao_vaga' && vaga_id) {
+        const publicacaoGratuita = await isPublicacaoVagaGratuitaAtiva(getAdmin());
+        if (publicacaoGratuita) {
+          await getAdmin()
+            .from('vagas')
+            .update({ ativa: true, updated_at: new Date().toISOString() })
+            .eq('id', vaga_id);
+          return NextResponse.json({ gratuito: true, vaga_id });
+        }
+      }
+
       valor = plano.valor;
       paymentDescricao = descricao || plano.nome;
     } else {
@@ -90,8 +102,8 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Verificar período gratuito para função extra
-      const gratuito = await isSistemaGratuitoAtivo(getAdmin());
+      // Verificar se "Adicionar função gratuita" está ativo
+      const gratuito = await isFuncaoExtraGratuitaAtiva(getAdmin());
       if (gratuito) {
         const { data: perfil } = await getAdmin()
           .from('prestador_perfil')

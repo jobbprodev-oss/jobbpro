@@ -96,6 +96,13 @@ export default function VagaPagamentoModal({
       const pixResponse = await response.json();
       if (!response.ok) throw new Error(pixResponse.error);
 
+      if (pixResponse.gratuito) {
+        setPagamentoConfirmado(true);
+        onSuccess();
+        onClose();
+        return;
+      }
+
       setPixData(pixResponse);
       // Iniciar polling
       const interval = setInterval(async () => {
