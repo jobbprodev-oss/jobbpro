@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Camera, Loader2, CheckCircle2, Upload, PlusCircle, QrCode, Copy, Clock } from 'lucide-react';
@@ -34,8 +34,16 @@ export default function RegisterPrestadorPage() {
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [legalModal, setLegalModal] = useState<'termos' | 'privacidade' | null>(null);
+  const [cadastroGratuitoAtivo, setCadastroGratuitoAtivo] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const finalizingRef = useRef(false);
+
+  useEffect(() => {
+    fetch('/api/configuracoes', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data) => setCadastroGratuitoAtivo(!!data?.cadastro_gratuito_ativo))
+      .catch(() => {});
+  }, []);
 
   const buscarCep = async (cep: string) => {
     const cepLimpo = cep.replace(/\D/g, '');
@@ -686,9 +694,20 @@ export default function RegisterPrestadorPage() {
 
         {step === 5 && (
           <div className="space-y-4 animate-slide-up">
-            <h2 className="section-title">Pagamento do Cadastro</h2>
+            <h2 className="section-title">{cadastroGratuitoAtivo ? 'Finalizar Cadastro' : 'Pagamento do Cadastro'}</h2>
 
-            {!pixData && !pixLoading && (
+            {!pixData && !pixLoading && cadastroGratuitoAtivo && (
+              <div className="card p-4 space-y-4">
+                <p className="text-sm text-gray-600">
+                  Seu cadastro está pronto para ser concluído.
+                </p>
+                <button onClick={gerarPixCadastro} className="btn-primary w-full flex items-center justify-center gap-2">
+                  <CheckCircle2 className="w-5 h-5" /> Concluir Cadastro
+                </button>
+              </div>
+            )}
+
+            {!pixData && !pixLoading && !cadastroGratuitoAtivo && (
               <div className="card p-4 space-y-4">
                 <p className="text-sm text-gray-600">
                   Realize o pagamento via PIX para concluir seu cadastro e ativar o acesso.
@@ -702,7 +721,7 @@ export default function RegisterPrestadorPage() {
             {pixLoading && (
               <div className="flex flex-col items-center py-8 gap-3">
                 <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
-                <p className="text-sm text-gray-500">Gerando cobrança PIX...</p>
+                <p className="text-sm text-gray-500">{cadastroGratuitoAtivo ? 'Concluindo seu cadastro...' : 'Gerando cobrança PIX...'}</p>
               </div>
             )}
 
@@ -764,7 +783,7 @@ export default function RegisterPrestadorPage() {
                 <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
                   <CheckCircle2 className="w-8 h-8 text-emerald-600" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">Pagamento confirmado!</h3>
+                <h3 className="text-lg font-bold text-gray-900">{cadastroGratuitoAtivo ? 'Cadastro concluído!' : 'Pagamento confirmado!'}</h3>
                 <p className="text-sm text-gray-500">Redirecionando para seu painel...</p>
               </div>
             )}
@@ -780,7 +799,7 @@ export default function RegisterPrestadorPage() {
           ) : step === 4 ? (
             <button onClick={nextStep} disabled={checkingEmail} className="btn-primary w-full flex items-center justify-center gap-2">
               {checkingEmail ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
-              {checkingEmail ? 'Verificando e-mail...' : 'Próximo: Pagamento'}
+              {checkingEmail ? 'Verificando e-mail...' : (cadastroGratuitoAtivo ? 'Próximo' : 'Próximo: Pagamento')}
             </button>
           ) : null}
         </div>

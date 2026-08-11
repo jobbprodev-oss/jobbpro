@@ -14,7 +14,7 @@ export async function GET() {
   try {
     const { data, error } = await getAdmin()
       .from('configuracoes')
-      .select('termos_uso, politica_privacidade')
+      .select('termos_uso, politica_privacidade, cadastro_gratuito_ativo')
       .eq('id', 'global')
       .maybeSingle();
 
@@ -23,12 +23,13 @@ export async function GET() {
     return NextResponse.json({
       termos_uso: data?.termos_uso || '',
       politica_privacidade: data?.politica_privacidade || '',
+      cadastro_gratuito_ativo: !!data?.cadastro_gratuito_ativo,
     }, {
       headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
     });
   } catch (err: any) {
     return NextResponse.json(
-      { error: err.message, termos_uso: '', politica_privacidade: '' },
+      { error: err.message, termos_uso: '', politica_privacidade: '', cadastro_gratuito_ativo: false },
       { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
     );
   }
