@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { ASAAS_API_URL, getAsaasKey } from '@/lib/pagamentos-server';
-import { isFuncaoExtraGratuitaAtiva, isPublicacaoVagaGratuitaAtiva } from '@/lib/gratuito';
+import { isFuncaoExtraGratuitaAtiva, isPublicacaoVagaGratuitaAtiva, isDisponibilidadeGratuitaAtiva } from '@/lib/gratuito';
 
 let _client: SupabaseClient | null = null;
 function getAdmin(): SupabaseClient {
@@ -78,6 +78,42 @@ export async function POST(request: NextRequest) {
             .update({ ativa: true, updated_at: new Date().toISOString() })
             .eq('id', vaga_id);
           return NextResponse.json({ gratuito: true, vaga_id });
+        }
+      }
+
+      // Verificar se "Disponibilidade gratuita" está ativo
+      if (tipo === 'disponibilidade') {
+        const disponibilidadeGratuita = await isDisponibilidadeGratuitaAtiva(getAdmin());
+        if (disponibilidadeGratuita) {
+          const { data: planoDisp } = await getAdmin()
+            .from('planos')
+            .select('duracao_horas')
+            .eq('id', plano_id)
+            .maybeSingle();
+          const { data: perfil } = await getAdmin()
+            .from('prestador_perfil')
+            .select('id')
+            .eq('user_id', authUser.id)
+            .single();
+          if (perfil) {
+            const duracaoHoras = planoDisp?.duracao_horas || 24;
+            const agora = new Date();
+            const fimDate = new Date(agora.getTime() + duracaoHoras * 60 * 60 * 1000);
+            const pad = (n: number) => String(n).padStart(2, '0');
+            const dataStr = agora.toISOString().split('T')[0];
+            const inicioStr = `${pad(agora.getHours())}:${pad(agora.getMinutes())}`;
+            const fimStr = `${pad(fimDate.getHours())}:${pad(fimDate.getMinutes())}`;
+            await getAdmin().from('disponibilidades').insert({
+              prestador_id: perfil.id,
+              data: dataStr,
+              horario_inicio: inicioStr,
+              horario_fim: fimStr,
+              disponivel: true,
+              plano_id,
+              expires_at: fimDate.toISOString(),
+            });
+          }
+          return NextResponse.json({ gratuito: true });
         }
       }
 

@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await getAdmin()
       .from('configuracoes')
-      .select('termos_uso, politica_privacidade, cadastro_gratuito_ativo, funcao_extra_gratuita_ativo, publicacao_vaga_gratuita_ativo')
+      .select('termos_uso, politica_privacidade, cadastro_gratuito_ativo, funcao_extra_gratuita_ativo, publicacao_vaga_gratuita_ativo, disponibilidade_gratuita_ativo')
       .eq('id', 'global')
       .single();
 
@@ -51,7 +51,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { termos_uso, politica_privacidade, cadastro_gratuito_ativo, funcao_extra_gratuita_ativo, publicacao_vaga_gratuita_ativo } = body;
+    const { termos_uso, politica_privacidade, cadastro_gratuito_ativo, funcao_extra_gratuita_ativo, publicacao_vaga_gratuita_ativo, disponibilidade_gratuita_ativo } = body;
 
     const payload: any = { id: 'global' };
     if (termos_uso !== undefined) payload.termos_uso = termos_uso ?? '';
@@ -59,6 +59,7 @@ export async function PUT(request: NextRequest) {
     if (cadastro_gratuito_ativo !== undefined) payload.cadastro_gratuito_ativo = cadastro_gratuito_ativo;
     if (funcao_extra_gratuita_ativo !== undefined) payload.funcao_extra_gratuita_ativo = funcao_extra_gratuita_ativo;
     if (publicacao_vaga_gratuita_ativo !== undefined) payload.publicacao_vaga_gratuita_ativo = publicacao_vaga_gratuita_ativo;
+    if (disponibilidade_gratuita_ativo !== undefined) payload.disponibilidade_gratuita_ativo = disponibilidade_gratuita_ativo;
 
     const { data, error } = await getAdmin()
       .from('configuracoes')

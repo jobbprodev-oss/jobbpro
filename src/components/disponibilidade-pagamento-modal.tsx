@@ -29,12 +29,23 @@ export default function DisponibilidadePagamentoModal({
   const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
   const [verificandoStatus, setVerificandoStatus] = useState(false);
   const [validadeInfo, setValidadeInfo] = useState<{ inicio: string; fim: string } | null>(null);
+  const [disponibilidadeGratuitaAtiva, setDisponibilidadeGratuitaAtiva] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       fetchPlanos();
+      fetch('/api/configuracoes', { cache: 'no-store' })
+        .then((res) => res.json())
+        .then((data) => setDisponibilidadeGratuitaAtiva(!!data?.disponibilidade_gratuita_ativo))
+        .catch(() => {});
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && disponibilidadeGratuitaAtiva && planos.length > 0 && !planoSelecionado) {
+      setPlanoSelecionado(planos[0]);
+    }
+  }, [isOpen, disponibilidadeGratuitaAtiva, planos, planoSelecionado]);
 
   const fetchPlanos = async () => {
     try {
@@ -81,6 +92,11 @@ export default function DisponibilidadePagamentoModal({
 
       const pixResponse = await response.json();
       if (!response.ok) throw new Error(pixResponse.error);
+
+      if (pixResponse.gratuito) {
+        mostrarSucesso();
+        return;
+      }
 
       setPixData(pixResponse);
       // Iniciar polling
@@ -145,7 +161,7 @@ export default function DisponibilidadePagamentoModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
       <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Disponibilidade - Pagamento</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{disponibilidadeGratuitaAtiva ? 'Ativar Disponibilidade' : 'Disponibilidade - Pagamento'}</h2>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100">
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -154,10 +170,29 @@ export default function DisponibilidadePagamentoModal({
         <div className="p-4 space-y-4">
           <div className="text-center">
             <p className="text-sm text-gray-500">Validade da disponibilidade</p>
-            <p className="text-xs text-gray-400">Inicia no momento da confirmação do pagamento</p>
+            <p className="text-xs text-gray-400">{disponibilidadeGratuitaAtiva ? 'Inicia no momento da ativação' : 'Inicia no momento da confirmação do pagamento'}</p>
           </div>
 
-          {!planoSelecionado && !pixData && (
+          {planoSelecionado && !pixData && disponibilidadeGratuitaAtiva && !pagamentoConfirmado && (
+            <div className="space-y-4">
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <p className="text-sm text-emerald-700">
+                  Sua disponibilidade será liberada gratuitamente.
+                </p>
+              </div>
+
+              <button
+                onClick={gerarPix}
+                disabled={loading}
+                className="btn-primary w-full flex items-center justify-center gap-2"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                {loading ? 'Ativando...' : 'Ativar Disponibilidade'}
+              </button>
+            </div>
+          )}
+
+          {!planoSelecionado && !pixData && !disponibilidadeGratuitaAtiva && (
             <div className="space-y-3">
               <h3 className="text-sm font-medium text-gray-700">Selecione um plano de serviço</h3>
               {planos.length === 0 ? (
@@ -187,7 +222,7 @@ export default function DisponibilidadePagamentoModal({
             </div>
           )}
 
-          {planoSelecionado && !pixData && (
+          {planoSelecionado && !pixData && !disponibilidadeGratuitaAtiva && (
             <div className="space-y-4">
               <div className="card p-3">
                 <div className="flex items-center justify-between">
@@ -271,7 +306,7 @@ export default function DisponibilidadePagamentoModal({
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-8 h-8 text-emerald-600" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Pagamento confirmado!</h3>
+              <h3 className="text-lg font-bold text-gray-900">{disponibilidadeGratuitaAtiva ? 'Disponibilidade ativada!' : 'Pagamento confirmado!'}</h3>
               {validadeInfo ? (
                 <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800">
                   <p className="font-medium">Disponibilidade ativa</p>

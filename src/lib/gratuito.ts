@@ -4,12 +4,13 @@ export interface GratuidadeConfig {
   cadastro_gratuito_ativo: boolean;
   funcao_extra_gratuita_ativo: boolean;
   publicacao_vaga_gratuita_ativo: boolean;
+  disponibilidade_gratuita_ativo: boolean;
 }
 
 export async function getConfigGratuito(admin: SupabaseClient): Promise<GratuidadeConfig> {
   const { data } = await admin
     .from('configuracoes')
-    .select('cadastro_gratuito_ativo, funcao_extra_gratuita_ativo, publicacao_vaga_gratuita_ativo')
+    .select('cadastro_gratuito_ativo, funcao_extra_gratuita_ativo, publicacao_vaga_gratuita_ativo, disponibilidade_gratuita_ativo')
     .eq('id', 'global')
     .maybeSingle();
 
@@ -17,6 +18,7 @@ export async function getConfigGratuito(admin: SupabaseClient): Promise<Gratuida
     cadastro_gratuito_ativo: !!data?.cadastro_gratuito_ativo,
     funcao_extra_gratuita_ativo: !!data?.funcao_extra_gratuita_ativo,
     publicacao_vaga_gratuita_ativo: !!data?.publicacao_vaga_gratuita_ativo,
+    disponibilidade_gratuita_ativo: !!data?.disponibilidade_gratuita_ativo,
   };
 }
 
@@ -45,4 +47,13 @@ export async function isPublicacaoVagaGratuitaAtiva(admin: SupabaseClient): Prom
     .eq('id', 'global')
     .maybeSingle();
   return !!data?.publicacao_vaga_gratuita_ativo;
+}
+
+export async function isDisponibilidadeGratuitaAtiva(admin: SupabaseClient): Promise<boolean> {
+  const { data } = await admin
+    .from('configuracoes')
+    .select('disponibilidade_gratuita_ativo')
+    .eq('id', 'global')
+    .maybeSingle();
+  return !!data?.disponibilidade_gratuita_ativo;
 }

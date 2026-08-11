@@ -6,13 +6,14 @@ import { useRouter } from 'next/navigation';
 import { getAuthToken } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import AuthProvider from '@/components/auth-provider';
-import { Loader2, ArrowLeft, Gift, UserPlus, Tag, Briefcase } from 'lucide-react';
+import { Loader2, ArrowLeft, Gift, UserPlus, Tag, Briefcase, CalendarCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface GratuitoData {
   cadastro_gratuito_ativo?: boolean;
   funcao_extra_gratuita_ativo?: boolean;
   publicacao_vaga_gratuita_ativo?: boolean;
+  disponibilidade_gratuita_ativo?: boolean;
 }
 
 type ChaveGratuito = keyof GratuitoData;
@@ -125,6 +126,18 @@ export default function AdminGratuitoPage() {
               onToggle={() => toggle('publicacao_vaga_gratuita_ativo', {
                 on: 'Publicação de oportunidade gratuita ativada!',
                 off: 'Publicação de oportunidade voltou a exigir pagamento.',
+              })}
+            />
+
+            <ControleGratuito
+              icon={CalendarCheck}
+              titulo="Disponibilidade gratuita"
+              descricao="Quando ativo, o prestador libera a disponibilidade sem seleção de planos nem cobrança no Asaas."
+              ativo={!!data.disponibilidade_gratuita_ativo}
+              saving={savingKey === 'disponibilidade_gratuita_ativo'}
+              onToggle={() => toggle('disponibilidade_gratuita_ativo', {
+                on: 'Disponibilidade gratuita ativada!',
+                off: 'Disponibilidade voltou a exigir pagamento.',
               })}
             />
 
