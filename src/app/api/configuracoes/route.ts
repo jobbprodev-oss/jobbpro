@@ -14,7 +14,7 @@ export async function GET() {
   try {
     const { data, error } = await getAdmin()
       .from('configuracoes')
-      .select('termos_uso, politica_privacidade, cadastro_gratuito_ativo')
+      .select('termos_uso, politica_privacidade, cadastro_gratuito_ativo, funcao_extra_gratuita_ativo, publicacao_vaga_gratuita_ativo')
       .eq('id', 'global')
       .maybeSingle();
 
@@ -24,12 +24,14 @@ export async function GET() {
       termos_uso: data?.termos_uso || '',
       politica_privacidade: data?.politica_privacidade || '',
       cadastro_gratuito_ativo: !!data?.cadastro_gratuito_ativo,
+      funcao_extra_gratuita_ativo: !!data?.funcao_extra_gratuita_ativo,
+      publicacao_vaga_gratuita_ativo: !!data?.publicacao_vaga_gratuita_ativo,
     }, {
       headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
     });
   } catch (err: any) {
     return NextResponse.json(
-      { error: err.message, termos_uso: '', politica_privacidade: '', cadastro_gratuito_ativo: false },
+      { error: err.message, termos_uso: '', politica_privacidade: '', cadastro_gratuito_ativo: false, funcao_extra_gratuita_ativo: false, publicacao_vaga_gratuita_ativo: false },
       { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
     );
   }

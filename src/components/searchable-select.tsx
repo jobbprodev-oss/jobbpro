@@ -14,7 +14,9 @@ interface SearchableSelectProps {
 export default function SearchableSelect({ value, onChange, options, placeholder = 'Selecione...', className = '' }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [busca, setBusca] = useState('');
+  const [coords, setCoords] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -33,6 +35,32 @@ export default function SearchableSelect({ value, onChange, options, placeholder
     }
   }, [open]);
 
+  const updateCoords = () => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom - 12;
+    const spaceAbove = rect.top - 12;
+    const openUp = spaceBelow < 200 && spaceAbove > spaceBelow;
+    setCoords({
+      top: openUp ? rect.top - Math.min(spaceAbove, 320) : rect.bottom,
+      left: rect.left,
+      width: rect.width,
+      maxHeight: Math.max(160, Math.min(320, openUp ? spaceAbove : spaceBelow)),
+    });
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    updateCoords();
+    const handle = () => updateCoords();
+    window.addEventListener('resize', handle);
+    window.addEventListener('scroll', handle, true);
+    return () => {
+      window.removeEventListener('resize', handle);
+      window.removeEventListener('scroll', handle, true);
+    };
+  }, [open]);
+
   const filtradas = options.filter((o) =>
     o.toLowerCase().includes(busca.toLowerCase())
   );
@@ -40,6 +68,7 @@ export default function SearchableSelect({ value, onChange, options, placeholder
   return (
     <div ref={ref} className={`relative ${className}`}>
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => { setOpen(!open); setBusca(''); }}
         className="input-field flex items-center justify-between gap-2 text-left"
@@ -60,9 +89,12 @@ export default function SearchableSelect({ value, onChange, options, placeholder
         </div>
       </button>
 
-      {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-hidden">
-          <div className="p-2 border-b border-gray-100">
+      {open && coords && (
+        <div
+          className="fixed z-[100] bg-white border border-gray-200 rounded-xl shadow-lg flex flex-col overflow-hidden"
+          style={{ top: coords.top, left: coords.left, width: coords.width, maxHeight: coords.maxHeight }}
+        >
+          <div className="p-2 border-b border-gray-100 flex-shrink-0">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
@@ -75,7 +107,7 @@ export default function SearchableSelect({ value, onChange, options, placeholder
               />
             </div>
           </div>
-          <div className="overflow-y-auto max-h-44">
+          <div className="overflow-y-auto flex-1">
             {filtradas.length === 0 ? (
               <p className="text-sm text-gray-400 text-center py-3">Nenhuma função encontrada</p>
             ) : (

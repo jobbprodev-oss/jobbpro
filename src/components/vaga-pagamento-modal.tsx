@@ -31,20 +31,29 @@ export default function VagaPagamentoModal({
   } | null>(null);
   const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
   const [vagaId, setVagaId] = useState<string | null>(null);
+  const [publicacaoGratuitaAtiva, setPublicacaoGratuitaAtiva] = useState(false);
+  const [configCarregada, setConfigCarregada] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       fetchPlanos();
+      fetch('/api/configuracoes', { cache: 'no-store' })
+        .then((res) => res.json())
+        .then((data) => setPublicacaoGratuitaAtiva(!!data?.publicacao_vaga_gratuita_ativo))
+        .catch(() => {})
+        .finally(() => setConfigCarregada(true));
     }
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && planos.length > 0 && !planoSelecionado && !pixData) {
-      // Auto-select the first (and only) plan and generate PIX
+    if (isOpen && configCarregada && planos.length > 0 && !planoSelecionado && !pixData) {
       setPlanoSelecionado(planos[0]);
-      setTimeout(() => gerarPix(), 100);
+      // No modo pago, gera o PIX automaticamente. No modo gratuito, aguarda confirmação do usuário.
+      if (!publicacaoGratuitaAtiva) {
+        setTimeout(() => gerarPix(), 100);
+      }
     }
-  }, [isOpen, planos, planoSelecionado, pixData]);
+  }, [isOpen, configCarregada, planos, planoSelecionado, pixData, publicacaoGratuitaAtiva]);
 
   const fetchPlanos = async () => {
     try {
@@ -171,7 +180,7 @@ export default function VagaPagamentoModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
       <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Publicar Oportunidade - Pagamento</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{publicacaoGratuitaAtiva ? 'Finalizar Oportunidade' : 'Publicar Oportunidade - Pagamento'}</h2>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100">
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -186,7 +195,26 @@ export default function VagaPagamentoModal({
             </p>
           </div>
 
-          {!planoSelecionado && !pixData && (
+          {planoSelecionado && !pixData && publicacaoGratuitaAtiva && !pagamentoConfirmado && (
+            <div className="space-y-4">
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <p className="text-sm text-emerald-700">
+                  Sua oportunidade será publicada gratuitamente.
+                </p>
+              </div>
+
+              <button
+                onClick={gerarPix}
+                disabled={loading}
+                className="btn-primary w-full flex items-center justify-center gap-2"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                {loading ? 'Publicando...' : 'Publicar Oportunidade'}
+              </button>
+            </div>
+          )}
+
+          {!planoSelecionado && !pixData && !publicacaoGratuitaAtiva && (
             <div className="space-y-3">
               <h3 className="text-sm font-medium text-gray-700">Selecione um plano de publicação</h3>
               {planos.length === 0 ? (
@@ -213,7 +241,7 @@ export default function VagaPagamentoModal({
             </div>
           )}
 
-          {planoSelecionado && !pixData && (
+          {planoSelecionado && !pixData && !publicacaoGratuitaAtiva && (
             <div className="space-y-4">
               <div className="card p-3">
                 <div className="flex items-center justify-between">

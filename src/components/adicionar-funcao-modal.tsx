@@ -25,6 +25,7 @@ export default function AdicionarFuncaoModal({ open, onClose }: AdicionarFuncaoM
   const [pixData, setPixData] = useState<{ pagamento_id: string; qr_code: string; copia_cola: string; valor: number } | null>(null);
   const [verificando, setVerificando] = useState(false);
   const [valorFuncao, setValorFuncao] = useState<number>(9.90);
+  const [funcaoGratuitaAtiva, setFuncaoGratuitaAtiva] = useState(false);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const { funcoes } = useFuncoes();
 
@@ -47,6 +48,11 @@ export default function AdicionarFuncaoModal({ open, onClose }: AdicionarFuncaoM
         .limit(1)
         .maybeSingle()
         .then(({ data }) => { if (data?.valor) setValorFuncao(data.valor); });
+
+      fetch('/api/configuracoes', { cache: 'no-store' })
+        .then((res) => res.json())
+        .then((data) => setFuncaoGratuitaAtiva(!!data?.funcao_extra_gratuita_ativo))
+        .catch(() => {});
     }
   }, [open]);
 
@@ -196,10 +202,10 @@ export default function AdicionarFuncaoModal({ open, onClose }: AdicionarFuncaoM
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md sm:max-w-lg shadow-xl max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-900">
-            {step === 'confirmado' ? 'Pagamento Confirmado' : step === 'pagamento' ? 'Pagamento PIX' : todasPreenchidas ? 'Adicionar Função Extra' : 'Adicionar Função'}
+            {step === 'confirmado' ? (funcaoGratuitaAtiva && todasPreenchidas ? 'Função Adicionada' : 'Pagamento Confirmado') : step === 'pagamento' ? 'Pagamento PIX' : todasPreenchidas ? (funcaoGratuitaAtiva ? 'Adicionar Função' : 'Adicionar Função Extra') : 'Adicionar Função'}
           </h2>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400">
             <X className="w-5 h-5" />
@@ -212,7 +218,7 @@ export default function AdicionarFuncaoModal({ open, onClose }: AdicionarFuncaoM
             <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-8 h-8 text-emerald-600" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900">Pagamento confirmado!</h3>
+            <h3 className="text-lg font-bold text-gray-900">{funcaoGratuitaAtiva && todasPreenchidas ? 'Função adicionada!' : 'Pagamento confirmado!'}</h3>
             <p className="text-sm text-gray-500">
               A função <strong>"{nomeSolicitar}"</strong> foi adicionada ao seu perfil com sucesso!
             </p>
@@ -276,8 +282,39 @@ export default function AdicionarFuncaoModal({ open, onClose }: AdicionarFuncaoM
           </div>
         )}
 
+        {/* STEP: Seleção (todas preenchidas - gratuito ativo) */}
+        {step === 'selecao' && todasPreenchidas && funcaoGratuitaAtiva && (
+          <div className="space-y-4">
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <p className="text-sm text-emerald-700">
+                A função será adicionada gratuitamente ao seu perfil.
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">Função desejada *</label>
+              <SearchableSelect
+                value={nomeSolicitar}
+                onChange={setNomeSolicitar}
+                options={opcoesDisponiveis}
+                placeholder="Buscar função..."
+              />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={handleGerarPix} disabled={loading || !nomeSolicitar.trim()}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors">
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                Adicionar Função
+              </button>
+              <button type="button" onClick={onClose}
+                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* STEP: Seleção (todas preenchidas - precisa pagar) */}
-        {step === 'selecao' && todasPreenchidas && (
+        {step === 'selecao' && todasPreenchidas && !funcaoGratuitaAtiva && (
           <div className="space-y-4">
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-700">
