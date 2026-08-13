@@ -1,13 +1,40 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 
+// URL padrão é a de PRODUÇÃO do Asaas. Só deve ser sobrescrita por ASAAS_API_URL
+// em ambientes de desenvolvimento/teste explicitamente configurados para Sandbox
+// (https://api-sandbox.asaas.com/v3).
 export const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://api.asaas.com/v3';
 
+// Chaves do Asaas seguem prefixos fixos por ambiente:
+//   Produção -> $aact_prod_...
+//   Sandbox  -> $aact_hmlg_...
+// Isso permite detectar e bloquear, em tempo de execução, qualquer combinação
+// inconsistente entre a URL configurada e a chave configurada (ex.: chave de
+// produção apontando para a URL de sandbox, ou vice-versa), evitando que uma
+// transação em produção seja processada silenciosamente no Sandbox.
 export function getAsaasKey() {
   const rawKey = process.env.ASAAS_API_KEY || '';
   if (!rawKey) {
     throw new Error('Chave do Asaas não configurada. Configure ASAAS_API_KEY nas variáveis de ambiente.');
   }
-  return rawKey.startsWith('$') ? rawKey : `$${rawKey}`;
+  const key = rawKey.startsWith('$') ? rawKey : `$${rawKey}`;
+
+  const isSandboxUrl = ASAAS_API_URL.includes('sandbox');
+  const isSandboxKey = key.startsWith('$aact_hmlg_');
+  const isProdKey = key.startsWith('$aact_prod_');
+
+  if (isSandboxUrl && isProdKey) {
+    throw new Error(
+      'Configuração inválida do Asaas: ASAAS_API_KEY é uma chave de PRODUÇÃO ($aact_prod_...) mas ASAAS_API_URL aponta para o SANDBOX. Corrija as variáveis de ambiente antes de continuar.'
+    );
+  }
+  if (!isSandboxUrl && isSandboxKey) {
+    throw new Error(
+      'Configuração inválida do Asaas: ASAAS_API_KEY é uma chave de SANDBOX ($aact_hmlg_...) mas ASAAS_API_URL aponta para PRODUÇÃO. Use a chave de produção ($aact_prod_...) nesta variável de ambiente.'
+    );
+  }
+
+  return key;
 }
 
 export function mapAsaasStatus(status?: string) {
