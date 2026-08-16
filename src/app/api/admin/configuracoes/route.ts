@@ -46,7 +46,10 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token || !(await isAdmin(token))) {
+    console.log('[CONFIGURACOES PUT] token presente:', !!token);
+    const adminOk = token ? await isAdmin(token) : false;
+    console.log('[CONFIGURACOES PUT] isAdmin:', adminOk);
+    if (!token || !adminOk) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
     }
 
@@ -61,12 +64,14 @@ export async function PUT(request: NextRequest) {
     if (publicacao_vaga_gratuita_ativo !== undefined) payload.publicacao_vaga_gratuita_ativo = publicacao_vaga_gratuita_ativo;
     if (disponibilidade_gratuita_ativo !== undefined) payload.disponibilidade_gratuita_ativo = disponibilidade_gratuita_ativo;
 
+    console.log('[CONFIGURACOES PUT] payload:', JSON.stringify(payload));
     const { data, error } = await getAdmin()
       .from('configuracoes')
       .upsert(payload, { onConflict: 'id' })
       .select()
       .single();
 
+    console.log('[CONFIGURACOES PUT] upsert result - error:', error?.message, '| data keys:', data ? Object.keys(data) : null);
     if (error) throw error;
 
     return NextResponse.json({ configuracoes: data }, {
