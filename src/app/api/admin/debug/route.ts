@@ -81,7 +81,40 @@ export async function GET(request: NextRequest) {
     results.update_test = { success: false, error: e.message };
   }
 
-  // 5. Verificar avaliacoes
+  // 5a. Testar configuracoes (tabela crítica para gratuito/termos)
+  try {
+    const { data: cfg, error: cfgErr } = await client
+      .from('configuracoes')
+      .select('id, cadastro_gratuito_ativo, funcao_extra_gratuita_ativo, publicacao_vaga_gratuita_ativo, disponibilidade_gratuita_ativo, termos_uso')
+      .eq('id', 'global')
+      .maybeSingle();
+    results.configuracoes_read = { ok: !cfgErr, data: cfg, error: cfgErr?.message };
+
+    // Testar upsert (write)
+    if (!cfgErr && cfg) {
+      const { data: upserted, error: upsertErr } = await client
+        .from('configuracoes')
+        .upsert({ id: 'global', cadastro_gratuito_ativo: cfg.cadastro_gratuito_ativo }, { onConflict: 'id' })
+        .select('id, cadastro_gratuito_ativo')
+        .single();
+      results.configuracoes_write = { ok: !upsertErr, data: upserted, error: upsertErr?.message };
+    }
+  } catch (e: any) {
+    results.configuracoes_read = { ok: false, error: e.message };
+  }
+
+  // 5b. Testar planos (select)
+  try {
+    const { data: planos, error: planosErr, count } = await client
+      .from('planos')
+      .select('id, nome, categoria, ativo', { count: 'exact' })
+      .limit(3);
+    results.planos_read = { ok: !planosErr, total: count, sample: planos, error: planosErr?.message };
+  } catch (e: any) {
+    results.planos_read = { ok: false, error: e.message };
+  }
+
+  // 5c. Verificar avaliacoes
   try {
     const { data: avs, error: avErr, count } = await client
       .from('avaliacoes')
