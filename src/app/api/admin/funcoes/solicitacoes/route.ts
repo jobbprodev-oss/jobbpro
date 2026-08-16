@@ -2,6 +2,8 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { criarNotificacao } from '@/lib/notificacoes';
 
+const ADMIN_EMAILS = ['guttembergy@gmail.com', 'bergnoco@gmail.com', 'ben@teste.com'];
+
 let _client: SupabaseClient | null = null;
 function getAdmin(): SupabaseClient {
   if (!_client) {
@@ -13,8 +15,10 @@ function getAdmin(): SupabaseClient {
 async function isAdmin(token: string): Promise<boolean> {
   const { data: { user } } = await getAdmin().auth.getUser(token);
   if (!user) return false;
-  const { data } = await getAdmin().from('users').select('tipo').eq('id', user.id).single();
-  return data?.tipo === 'admin';
+  const { data } = await getAdmin().from('users').select('tipo').eq('id', user.id).maybeSingle();
+  if (data?.tipo === 'admin') return true;
+  if (user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) return true;
+  return false;
 }
 
 export const dynamic = 'force-dynamic';
