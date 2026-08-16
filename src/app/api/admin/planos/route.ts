@@ -27,7 +27,9 @@ export async function GET(request: NextRequest) {
       .order('tipo_usuario')
       .order('valor', { ascending: true });
     if (error) throw error;
-    return NextResponse.json({ planos: data });
+    return NextResponse.json({ planos: data }, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

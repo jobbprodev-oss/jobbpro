@@ -32,6 +32,17 @@ export default function DisponibilidadePagamentoModal({
   const [disponibilidadeGratuitaAtiva, setDisponibilidadeGratuitaAtiva] = useState(false);
 
   useEffect(() => {
+    if (!isOpen) {
+      setPlanoSelecionado(null);
+      setPixData(null);
+      setPagamentoConfirmado(false);
+      setValidadeInfo(null);
+      setVerificandoStatus(false);
+      setDisponibilidadeGratuitaAtiva(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (isOpen) {
       fetchPlanos();
       fetch('/api/configuracoes', { cache: 'no-store' })

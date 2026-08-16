@@ -47,7 +47,7 @@ export default function AdminPlanosPage() {
   const fetchPlanos = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/planos');
+      const res = await fetch('/api/admin/planos', { cache: 'no-store' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setPlanos(data.planos || []);

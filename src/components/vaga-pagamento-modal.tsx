@@ -35,6 +35,17 @@ export default function VagaPagamentoModal({
   const [configCarregada, setConfigCarregada] = useState(false);
 
   useEffect(() => {
+    if (!isOpen) {
+      setPlanoSelecionado(null);
+      setPixData(null);
+      setPagamentoConfirmado(false);
+      setVagaId(null);
+      setConfigCarregada(false);
+      setPublicacaoGratuitaAtiva(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (isOpen) {
       fetchPlanos();
       fetch('/api/configuracoes', { cache: 'no-store' })
@@ -48,10 +59,6 @@ export default function VagaPagamentoModal({
   useEffect(() => {
     if (isOpen && configCarregada && planos.length > 0 && !planoSelecionado && !pixData) {
       setPlanoSelecionado(planos[0]);
-      // No modo pago, gera o PIX automaticamente. No modo gratuito, aguarda confirmação do usuário.
-      if (!publicacaoGratuitaAtiva) {
-        setTimeout(() => gerarPix(), 100);
-      }
     }
   }, [isOpen, configCarregada, planos, planoSelecionado, pixData, publicacaoGratuitaAtiva]);
 
