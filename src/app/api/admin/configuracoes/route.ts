@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await getAdmin()
       .from('configuracoes')
-      .select('termos_uso, politica_privacidade, cadastro_gratuito_ativo, funcao_extra_gratuita_ativo, publicacao_vaga_gratuita_ativo, disponibilidade_gratuita_ativo')
+      .select('*')
       .eq('id', 'global')
       .single();
 
