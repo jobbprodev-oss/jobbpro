@@ -3,12 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const ADMIN_EMAILS = ['guttembergy@gmail.com', 'bergnoco@gmail.com', 'ben@teste.com'];
 
-let _client: SupabaseClient | null = null;
 function getAdmin(): SupabaseClient {
-  if (!_client) {
-    _client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error(`ENV_MISSING: SUPABASE_URL=${!!url} SERVICE_ROLE_KEY=${!!key}`);
   }
-  return _client;
+  return createClient(url, key);
 }
 
 async function isAdmin(token: string): Promise<boolean> {
@@ -26,7 +27,10 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token || !(await isAdmin(token))) {
+    console.log('[CONFIGURACOES GET] token presente:', !!token);
+    const adminOk = token ? await isAdmin(token) : false;
+    console.log('[CONFIGURACOES GET] isAdmin:', adminOk);
+    if (!token || !adminOk) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
     }
 
@@ -36,12 +40,14 @@ export async function GET(request: NextRequest) {
       .eq('id', 'global')
       .single();
 
+    console.log('[CONFIGURACOES GET] error:', error?.message, '| data keys:', data ? Object.keys(data) : null);
     if (error && error.code !== 'PGRST116') throw error;
 
     return NextResponse.json({ configuracoes: data || {} }, {
       headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
     });
   } catch (err: any) {
+    console.log('[CONFIGURACOES GET] exception:', err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

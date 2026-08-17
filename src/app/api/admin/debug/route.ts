@@ -3,138 +3,149 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-// GET - Diagnosticar problemas com service_role_key e update
+// GET - Diagnóstico completo para problemas de produção
 export async function GET(request: NextRequest) {
   const results: Record<string, any> = {};
 
-  // 1. Verificar se variáveis estão definidas
+  // 1. Variáveis de ambiente
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
   results.env = {
-    url_defined: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-    service_key_defined: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-    service_key_starts_with: process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 10) || 'UNDEFINED',
-    anon_key_starts_with: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 10) || 'UNDEFINED',
-    keys_are_same: process.env.SUPABASE_SERVICE_ROLE_KEY === process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    url_defined: !!url,
+    url_prefix: url?.substring(0, 30) || 'UNDEFINED',
+    service_key_defined: !!serviceKey,
+    service_key_length: serviceKey?.length || 0,
+    service_key_prefix: serviceKey?.substring(0, 15) || 'UNDEFINED',
+    anon_key_defined: !!anonKey,
+    anon_key_prefix: anonKey?.substring(0, 15) || 'UNDEFINED',
+    keys_are_same: serviceKey === anonKey,
+    verdict: !serviceKey
+      ? 'ERRO: SUPABASE_SERVICE_ROLE_KEY ausente — upserts bloqueados por RLS'
+      : serviceKey === anonKey
+      ? 'ERRO: SERVICE_KEY é igual à ANON_KEY — use a chave service_role do Supabase'
+      : 'OK',
   };
 
-  // 2. Criar client fresh (não singleton)
-  const client = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  // 3. Testar SELECT em solicitacoes_funcao
-  try {
-    const { data, error } = await client
-      .from('solicitacoes_funcao')
-      .select('id, nome_funcao, status')
-      .limit(5);
-    results.select_test = { success: !error, count: data?.length, data, error: error?.message };
-  } catch (e: any) {
-    results.select_test = { success: false, error: e.message };
+  if (!url || !serviceKey) {
+    return NextResponse.json({ ...results, fatal: 'Env vars ausentes, abortando diagnóstico' }, { status: 200 });
   }
 
-  // 4. Testar UPDATE direto (pegar primeiro pendente e tentar atualizar)
+  // 2. Client com service_role (bypassa RLS)
+  const adminClient = createClient(url, serviceKey);
+
+  // 3. Colunas existentes na tabela configuracoes
   try {
-    const { data: pendente } = await client
-      .from('solicitacoes_funcao')
-      .select('id, status')
-      .eq('status', 'pendente')
-      .limit(1)
-      .single();
+    const { data: cols, error: colErr } = await adminClient
+      .from('information_schema.columns' as any)
+      .select('column_name')
+      .eq('table_schema', 'public')
+      .eq('table_name', 'configuracoes');
 
-    if (pendente) {
-      // Tentar update
-      const { data: updated, error: updateErr, count } = await client
-        .from('solicitacoes_funcao')
-        .update({ status: 'aprovada' })
-        .eq('id', pendente.id)
-        .select('id, status')
-        .single();
+    const existingCols = (cols as any[])?.map((c: any) => c.column_name) || [];
+    const required = ['cadastro_gratuito_ativo', 'funcao_extra_gratuita_ativo', 'publicacao_vaga_gratuita_ativo', 'disponibilidade_gratuita_ativo'];
+    const missing = required.filter(c => !existingCols.includes(c));
 
-      results.update_test = {
-        target_id: pendente.id,
-        update_error: updateErr?.message || null,
-        update_result: updated,
-        count,
-      };
-
-      // Verificar se persistiu
-      const { data: verify } = await client
-        .from('solicitacoes_funcao')
-        .select('id, status')
-        .eq('id', pendente.id)
-        .single();
-
-      results.verify_after_update = verify;
-
-      // REVERTER para pendente (teste apenas)
-      await client
-        .from('solicitacoes_funcao')
-        .update({ status: 'pendente' })
-        .eq('id', pendente.id);
-
-      results.note = 'Status revertido para pendente após teste';
-    } else {
-      results.update_test = { message: 'Nenhuma solicitação pendente encontrada' };
-    }
+    results.configuracoes_schema = {
+      ok: !colErr && missing.length === 0,
+      existing_columns: existingCols,
+      missing_migration_columns: missing,
+      error: colErr?.message,
+      verdict: missing.length > 0
+        ? `ERRO: Colunas ausentes no banco → execute as migrações 22-25 no Supabase SQL Editor`
+        : 'OK: todas as colunas existem',
+    };
   } catch (e: any) {
-    results.update_test = { success: false, error: e.message };
+    results.configuracoes_schema = { ok: false, error: e.message };
   }
 
-  // 5a. Testar configuracoes (tabela crítica para gratuito/termos)
+  // 4. Teste SELECT configuracoes com service_role
   try {
-    const { data: cfg, error: cfgErr } = await client
+    const { data: cfg, error: cfgErr } = await adminClient
       .from('configuracoes')
-      .select('id, cadastro_gratuito_ativo, funcao_extra_gratuita_ativo, publicacao_vaga_gratuita_ativo, disponibilidade_gratuita_ativo, termos_uso')
+      .select('*')
       .eq('id', 'global')
       .maybeSingle();
-    results.configuracoes_read = { ok: !cfgErr, data: cfg, error: cfgErr?.message };
 
-    // Testar upsert (write)
-    if (!cfgErr && cfg) {
-      const { data: upserted, error: upsertErr } = await client
-        .from('configuracoes')
-        .upsert({ id: 'global', cadastro_gratuito_ativo: cfg.cadastro_gratuito_ativo }, { onConflict: 'id' })
-        .select('id, cadastro_gratuito_ativo')
-        .single();
-      results.configuracoes_write = { ok: !upsertErr, data: upserted, error: upsertErr?.message };
-    }
+    results.configuracoes_select = {
+      ok: !cfgErr,
+      row_exists: !!cfg,
+      columns_returned: cfg ? Object.keys(cfg) : [],
+      values: cfg ? {
+        cadastro_gratuito_ativo: cfg.cadastro_gratuito_ativo,
+        funcao_extra_gratuita_ativo: cfg.funcao_extra_gratuita_ativo,
+        publicacao_vaga_gratuita_ativo: cfg.publicacao_vaga_gratuita_ativo,
+        disponibilidade_gratuita_ativo: cfg.disponibilidade_gratuita_ativo,
+        termos_uso_length: cfg.termos_uso?.length || 0,
+      } : null,
+      error: cfgErr?.message,
+    };
   } catch (e: any) {
-    results.configuracoes_read = { ok: false, error: e.message };
+    results.configuracoes_select = { ok: false, error: e.message };
   }
 
-  // 5b. Testar planos (select)
+  // 5. Teste UPSERT configuracoes com service_role (write real)
   try {
-    const { data: planos, error: planosErr, count } = await client
-      .from('planos')
-      .select('id, nome, categoria, ativo', { count: 'exact' })
-      .limit(3);
-    results.planos_read = { ok: !planosErr, total: count, sample: planos, error: planosErr?.message };
+    const { data: upserted, error: upsertErr } = await adminClient
+      .from('configuracoes')
+      .upsert({ id: 'global', cadastro_gratuito_ativo: false }, { onConflict: 'id' })
+      .select('id, cadastro_gratuito_ativo')
+      .single();
+
+    results.configuracoes_upsert = {
+      ok: !upsertErr,
+      data: upserted,
+      error: upsertErr?.message,
+      verdict: upsertErr
+        ? `ERRO: ${upsertErr.message}`
+        : 'OK: upsert funcionou — service_role_key está correto e colunas existem',
+    };
   } catch (e: any) {
-    results.planos_read = { ok: false, error: e.message };
+    results.configuracoes_upsert = { ok: false, error: e.message };
   }
 
-  // 5c. Verificar avaliacoes
+  // 6. Teste SELECT com anon key (simula cliente sem service_role)
   try {
-    const { data: avs, error: avErr, count } = await client
-      .from('avaliacoes')
-      .select('id, avaliado_id, nota, descricao', { count: 'exact' })
-      .limit(5);
-    results.avaliacoes = { total: count, sample: avs, error: avErr?.message };
+    const anonClient = createClient(url, anonKey || '');
+    const { data: anonData, error: anonErr } = await anonClient
+      .from('configuracoes')
+      .select('id, termos_uso')
+      .eq('id', 'global')
+      .maybeSingle();
+
+    results.anon_select_test = {
+      ok: !anonErr,
+      data: anonData,
+      error: anonErr?.message,
+      note: 'Anon pode SELECT via policy "Todos podem ver termos e politica" — mas não pode UPDATE',
+    };
   } catch (e: any) {
-    results.avaliacoes = { error: e.message };
+    results.anon_select_test = { ok: false, error: e.message };
   }
 
-  // 6. Verificar se RPC existe
+  // 7. Teste UPSERT com anon key (deve falhar por RLS)
   try {
-    const { data, error } = await client.rpc('responder_solicitacao', {
-      p_id: '00000000-0000-0000-0000-000000000000',
-      p_status: 'aprovada',
-    });
-    results.rpc_test = { exists: !error || !error.message.includes('not exist'), error: error?.message, data };
+    const anonClient = createClient(url, anonKey || '');
+    const { data: anonUpsert, error: anonUpsertErr } = await anonClient
+      .from('configuracoes')
+      .upsert({ id: 'global', cadastro_gratuito_ativo: false }, { onConflict: 'id' })
+      .select('id')
+      .single();
+
+    results.anon_upsert_test = {
+      ok: !anonUpsertErr,
+      error: anonUpsertErr?.message,
+      note: anonUpsertErr
+        ? 'ESPERADO: anon não pode upsert — RLS bloqueia corretamente'
+        : 'ALERTA: anon conseguiu upsert — RLS pode estar desativado',
+    };
   } catch (e: any) {
-    results.rpc_test = { exists: false, error: e.message };
+    results.anon_upsert_test = { ok: false, error: e.message };
   }
 
-  return NextResponse.json(results, { status: 200 });
+  return NextResponse.json(results, {
+    status: 200,
+    headers: { 'Cache-Control': 'no-store' },
+  });
 }
