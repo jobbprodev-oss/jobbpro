@@ -51,8 +51,10 @@ export default function AdminGratuitoPage() {
   };
 
   const toggle = async (chave: ChaveGratuito, mensagens: { on: string; off: string }) => {
-    setSavingKey(chave);
+    if (savingKey) return;
     const novoValor = !data[chave];
+    setSavingKey(chave);
+    setData(prev => ({ ...prev, [chave]: novoValor }));
     try {
       const token = await getAuthToken();
       const res = await fetch('/api/admin/configuracoes', {
@@ -62,10 +64,11 @@ export default function AdminGratuitoPage() {
         body: JSON.stringify({ [chave]: novoValor }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error);
+      if (!res.ok) throw new Error(json.error || 'Erro ao salvar');
       setData(json.configuracoes || {});
       toast.success(novoValor ? mensagens.on : mensagens.off);
     } catch (err: any) {
+      setData(prev => ({ ...prev, [chave]: !novoValor }));
       toast.error(err.message || 'Erro ao salvar');
     } finally {
       setSavingKey(null);
@@ -99,6 +102,7 @@ export default function AdminGratuitoPage() {
               descricao="Quando ativo, novos cadastros não geram cobrança no Asaas."
               ativo={!!data.cadastro_gratuito_ativo}
               saving={savingKey === 'cadastro_gratuito_ativo'}
+              disabled={!!savingKey}
               onToggle={() => toggle('cadastro_gratuito_ativo', {
                 on: 'Cadastro gratuito ativado!',
                 off: 'Cadastro voltou a exigir pagamento.',
@@ -111,6 +115,7 @@ export default function AdminGratuitoPage() {
               descricao="Quando ativo, o prestador pode adicionar novas funções (quantidade ilimitada) sem pagamento."
               ativo={!!data.funcao_extra_gratuita_ativo}
               saving={savingKey === 'funcao_extra_gratuita_ativo'}
+              disabled={!!savingKey}
               onToggle={() => toggle('funcao_extra_gratuita_ativo', {
                 on: 'Adição de função gratuita ativada!',
                 off: 'Adição de função voltou a exigir pagamento.',
@@ -123,6 +128,7 @@ export default function AdminGratuitoPage() {
               descricao="Quando ativo, a oportunidade pode ser publicada sem a cobrança atual no Asaas."
               ativo={!!data.publicacao_vaga_gratuita_ativo}
               saving={savingKey === 'publicacao_vaga_gratuita_ativo'}
+              disabled={!!savingKey}
               onToggle={() => toggle('publicacao_vaga_gratuita_ativo', {
                 on: 'Publicação de oportunidade gratuita ativada!',
                 off: 'Publicação de oportunidade voltou a exigir pagamento.',
@@ -135,6 +141,7 @@ export default function AdminGratuitoPage() {
               descricao="Quando ativo, o prestador libera a disponibilidade sem seleção de planos nem cobrança no Asaas."
               ativo={!!data.disponibilidade_gratuita_ativo}
               saving={savingKey === 'disponibilidade_gratuita_ativo'}
+              disabled={!!savingKey}
               onToggle={() => toggle('disponibilidade_gratuita_ativo', {
                 on: 'Disponibilidade gratuita ativada!',
                 off: 'Disponibilidade voltou a exigir pagamento.',
@@ -163,6 +170,7 @@ function ControleGratuito({
   descricao,
   ativo,
   saving,
+  disabled,
   onToggle,
 }: {
   icon: any;
@@ -170,6 +178,7 @@ function ControleGratuito({
   descricao: string;
   ativo: boolean;
   saving: boolean;
+  disabled: boolean;
   onToggle: () => void;
 }) {
   return (
@@ -190,7 +199,7 @@ function ControleGratuito({
         <button
           type="button"
           onClick={onToggle}
-          disabled={saving}
+          disabled={disabled}
           className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 ${
             ativo ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-brand-600 hover:bg-brand-700 text-white'
           }`}
