@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getAuthToken } from '@/lib/supabase';
@@ -24,6 +24,7 @@ export default function AdminGratuitoPage() {
   const [data, setData] = useState<GratuitoData>({});
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<ChaveGratuito | null>(null);
+  const isSaving = useRef(false);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -51,7 +52,8 @@ export default function AdminGratuitoPage() {
   };
 
   const toggle = async (chave: ChaveGratuito, mensagens: { on: string; off: string }) => {
-    if (savingKey) return;
+    if (isSaving.current) return;
+    isSaving.current = true;
     const novoValor = !data[chave];
     setSavingKey(chave);
     setData(prev => ({ ...prev, [chave]: novoValor }));
@@ -71,6 +73,7 @@ export default function AdminGratuitoPage() {
       setData(prev => ({ ...prev, [chave]: !novoValor }));
       toast.error(err.message || 'Erro ao salvar');
     } finally {
+      isSaving.current = false;
       setSavingKey(null);
     }
   };
